@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en" data-brand="green">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision. Videos, implementation details, and reward-prediction experiments." />
+    <meta name="theme-color" content="#0b0a16" />
+    <meta property="og:title" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision" />
+    <meta property="og:description" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision. Videos, implementation details, and reward-prediction experiments." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://robot-reward-prism.github.io/" />
+    <link rel="canonical" href="https://robot-reward-prism.github.io/" />
+    <title>PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M15 4 26 28H4Z' fill='%23f2ece6' stroke='%231b1e23' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M1 16h8.6l10.4 3' fill='none' stroke='%231b1e23' stroke-width='1.8'/%3E%3Cpath d='M20 19l11-5' stroke='%23177c87' stroke-width='2.2'/%3E%3Cpath d='M20 19h11' stroke='%2376b900' stroke-width='2.2'/%3E%3Cpath d='M20 19l11 5' stroke='%23c98500' stroke-width='2.2'/%3E%3C/svg%3E" />
+    <script>
+      /* Accent before first paint: ?brand=anon | green (the site script repeats
+         this). Any ?brand= also reveals the footer accent swatches. */
+      (function () {
+        try {
+          var b = (new URLSearchParams(location.search).get("brand") || "").toLowerCase();
+          if (!b) return;
+          document.documentElement.classList.add("brand-ui");
+          if (b !== "anon" && b !== "green") return;
+          document.documentElement.setAttribute("data-brand", b);
+          var icon = document.querySelector("link[rel~='icon']");
+          if (icon && b === "anon") icon.setAttribute("href", icon.getAttribute("href").replace("%2376b900", "%235b50d6"));
+        } catch (e) {}
+      })();
+    </script>
+    <!-- Self-hosted fonts (assets/fonts, declared in site.css): no third-party
+         stylesheet can hold up first paint. KaTeX's stylesheet is non-blocking
+         (the math sits far below the fold); its scripts are loaded by app.js. -->
+    <link rel="preload" href="assets/fonts/inter-normal-400-700-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/newsreader-normal-400-700-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous" /></noscript>
+    <link rel="stylesheet" href="assets/css/site.css?v=3178422903" />
+    <link rel="stylesheet" href="assets/css/content.css?v=3405373506" />
+    <link rel="stylesheet" href="assets/css/players.css?v=2437433237" />
+    <script defer src="assets/js/site.js?v=48775859"></script>
+    <script defer src="assets/js/data/tasks.js?v=2738016340"></script>
+    <script defer src="assets/js/data/predictions.js?v=238110375"></script>
+    <script defer src="assets/js/data/supervision.js?v=229931450"></script>
+    <script defer src="assets/js/app.js?v=509924336"></script>
+    <script defer src="assets/js/evaluation-nav.js?v=2386313955"></script>
+    <script defer src="assets/js/policy.js?v=2279950399"></script>
+    <script defer src="assets/js/prediction-player.js?v=2039737276"></script>
+    <script defer src="assets/js/supervision-example.js?v=2064158313"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#overview">Skip to content</a>
+    <a class="skip-link" href="#submission-video">Skip to video</a>
+    <div class="scroll-progress" aria-hidden="true"></div>
+
+    <svg style="display:none" aria-hidden="true">
+      <symbol id="mark" viewBox="0 0 32 32">
+        <path d="M16 3.5 27.5 30H4.5Z" />
+        <path class="beam" d="M1 16.5H10.4" />
+        <path class="beam beam--in" d="M10.4 16.5 22.4 18.2" />
+        <path class="beam" d="M22.4 18.2l8.6 2.8M22.4 18.2l7.9 4.4M22.4 18.2l6.9 5.8" />
+      </symbol>
+      <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></symbol>
+      <symbol id="i-braces" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" /><path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" /></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></symbol>
+    </svg>
+
+    <nav class="navbar" aria-label="Sections">
+      <a class="nav-brand" href="#overview" aria-label="PRISM project website">
+        <svg aria-hidden="true"><use href="#mark" /></svg>
+        <span>PRISM</span>
+      </a>
+      <div class="nav-links">
+        <a class="nav-link" href="#overview">Overview</a>
+        <a class="nav-link" href="#composition">Composition</a>
+        <a class="nav-link" href="#policy">Rollouts</a>
+        <a class="nav-link" href="#predictions">Evaluation</a>
+        <a class="nav-link" href="#details">Details</a>
+        <a class="nav-link" href="#tasks">Tasks</a>
+        <a class="nav-link" href="#bibtex">BibTeX</a>
+      </div>
+    </nav>
+
+    <header class="hero" id="top" data-hero data-band="dark" aria-label="PRISM cover film">
+      <video class="hero-media" muted loop playsinline preload="none" poster="assets/cover/cover_start.jpg" data-still-poster="assets/cover/cover_title.jpg" aria-hidden="true" tabindex="-1">
+        <!-- site.js attaches the source when playback is wanted. Reduced motion
+             and ?preview=light show the poster until the visitor clicks Play. -->
+        <source data-cover-src="assets/cover/prism_cover_v8_1080.mp4" type="video/mp4" />
+      </video>
+      <button class="hero-play" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.52.85l10.4-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5z" /></svg>
+        <span>Play film</span>
+      </button>
+      <a class="hero-scroll" href="#overview" aria-label="Scroll to content">
+        <span class="hero-scroll-label">Scroll</span>
+        <span class="hero-scroll-chev"></span>
+      </a>
+      <button class="hero-toggle" type="button" aria-label="Pause the cover film" aria-pressed="false">
+        <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+        <svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.52.85l10.4-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5z" /></svg>
+      </button>
+    </header>
+
+    <main>
+      <section class="section section-overview" id="overview" aria-labelledby="page-title">
+        <div class="container container--intro intro">
+          <h1 class="page-title" id="page-title"><span id="hero-title"></span>PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision</h1>
+          <div class="page-authors">
+            <ol class="author-list" aria-label="Authors in manuscript order">
+              <li><span class="author-name">Zi-ang Cao</span><sup>1,2,*</sup></li>
+              <li><span class="author-name">Kaiyuan Zheng</span><sup>1,3,*</sup></li>
+              <li><span class="author-name">Yinzhen Xu</span><sup>1</sup></li>
+              <li><span class="author-name">Haonan Duan</span><sup>1</sup></li>
+              <li><span class="author-name">Jiasheng Gu</span><sup>1</sup></li>
+              <li><span class="author-name">Fengyuan Hu</span><sup>1</sup></li>
+              <li><span class="author-name">Nan Zhu</span><sup>1</sup></li>
+              <li><span class="author-name">Kun Lei</span><sup>1</sup></li>
+              <li><span class="author-name">Kevin Lin</span><sup>1</sup></li>
+              <li><span class="author-name">Ruijie Zheng</span><sup>1</sup></li>
+              <li><span class="author-name">Shenyuan Gao</span><sup>1</sup></li>
+              <li><span class="author-name">Fangqi Zhu</span><sup>1</sup></li>
+              <li><span class="author-name">Zhe Zhang</span><sup>1</sup></li>
+              <li><span class="author-name">Radha Poovendran</span><sup>3</sup></li>
+              <li><span class="author-name">Linxi Fan</span><sup>1,†</sup></li>
+              <li><span class="author-name">Guanzhi Wang</span><sup>1,†</sup></li>
+              <li><span class="author-name">Yuke Zhu</span><sup>1,2,†</sup></li>
+            </ol>
+            <ul class="affiliation-list" aria-label="Affiliations">
+              <li><sup>1</sup>NVIDIA</li>
+              <li><sup>2</sup>The University of Texas at Austin</li>
+              <li><sup>3</sup>University of Washington</li>
+            </ul>
+            <p class="author-note-line"><span><sup>*</sup>Equal contribution</span><span aria-hidden="true">·</span><span><sup>†</sup>Project leads</span></p>
+          </div>
+          <div class="intro-actions">
+            <a class="btn" href="assets/paper/reward_PRISM_arxiv_v1.pdf" aria-label="Main paper (PDF)">
+              <svg class="btn-ico" aria-hidden="true"><use href="#i-doc" /></svg>
+              Paper (PDF)
+            </a>
+            <button class="btn" type="button" data-expand="assets/video/prism-overview-release-clean-1080.mp4" data-expand-poster="assets/video/prism-overview-release-clean.jpg" aria-label="Play the overview video full screen, with sound">
+              <svg class="btn-ico" aria-hidden="true"><use href="#i-play" /></svg>
+              Video
+            </button>
+            <a class="btn" href="#bibtex">
+              <svg class="btn-ico" aria-hidden="true"><use href="#i-braces" /></svg>
+              BibTeX
+            </a>
+          </div>
+
+          <figure class="media-card overview-film">
+            <div class="media-float">
+              <video id="submission-video" controls playsinline preload="none" width="1920" height="1080" poster="assets/video/prism-overview-release-clean.jpg" aria-label="PRISM overview video" aria-describedby="submission-video-caption">
+                <source src="assets/video/prism-overview-release-clean-1080.mp4" type="video/mp4" />
+                <a href="assets/video/prism-overview-release-clean-1080.mp4">Watch the PRISM overview video</a>.
+              </video>
+            </div>
+            <figcaption class="media-cap" id="submission-video-caption">
+              <strong class="cap-title">Overview video</strong>
+              <span class="cap-meta">3 minutes · sound on</span>
+            </figcaption>
+          </figure>
+
+          <div class="abstract">
+            <p class="supplement-intro">Explore PRISM through videos, reward-prediction experiments, and implementation details.</p>
+            <nav class="explore-links hero-links" aria-label="Explore PRISM">
+              <a href="#policy">Policy rollouts <span aria-hidden="true">→</span></a>
+              <a href="#predictions">Reward prediction <span aria-hidden="true">→</span></a>
+              <a href="#details">Implementation details <span aria-hidden="true">→</span></a>
+            </nav>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="composition" aria-labelledby="composition-title">
+        <div class="container container--wide">
+          <header class="section-header">
+            <p class="kicker">01 · Compositional progress</p>
+            <h2 id="composition-title">Break down long tasks. Compose their progress.</h2>
+            <p class="lede">Describe a long task as a sequence of subtasks. Select the unfinished subtask, estimate its local progress, and combine it with credit for completed subtasks to track whole-task progress.</p>
+            <details class="ref">
+              <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Paper · Sec. 3.2 · Fig. 2</summary>
+              <p class="table-note">For the compositional formulation and shared predictor, see Sec. 3.2 and Fig. 2 of the paper.</p>
+            </details>
+          </header>
+          <figure class="figure figure--method">
+            <div class="plate plate--zoom" data-expand="assets/fig/fig2-method.png" aria-label="Enlarge Figure 2">
+              <img src="assets/fig/fig2-method.png" srcset="assets/img/fig2-method-1250.webp 1250w, assets/img/fig2-method-2500.webp 2500w" sizes="(max-width: 1100px) calc(100vw - 2.5rem), 1036px" width="2500" height="888" alt="Figure 2: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." loading="lazy" decoding="async" />
+            </div>
+            <figcaption><b>Fig. 2 · From local to global task progress.</b> A shared vision–language model selects the subtask and estimates its progress from the selected description. Composition adds credit for earlier completed subtasks. Curves are schematic.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="section section--band" id="policy" aria-labelledby="policy-title">
+        <div class="container container--wide">
+          <header class="section-header">
+            <p class="kicker">02 · Policy rollout videos</p>
+            <h2 id="policy-title">Autonomous policy rollouts.</h2>
+            <p class="lede">The videos show one selected successful evaluation episode per task on real-world robots, in four synchronized camera views.</p>
+            <details class="ref">
+              <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Paper · Sec. 4.5 · Figs. 5–6</summary>
+              <p class="paper-guide"><strong>In the main paper:</strong> aggregate policy success rates in Sec. 4.5 and Fig. 5 (offline RL), and Sec. 4.5 and Fig. 6 (progress-weighted BC).</p>
+            </details>
+          </header>
+        </div>
+        <div class="band-dark policy-band">
+          <div class="container container--wide">
+            <div id="policy-player"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="predictions" aria-labelledby="predictions-title">
+        <div class="container container--wide">
+          <header class="section-header">
+            <p class="kicker">03 · Reward model evaluation</p>
+            <h2 id="predictions-title">Unified compositional reward model for long-horizon tasks</h2>
+            <p class="predictor-invariant callout callout--inline"><strong>Same everywhere</strong><span>One architecture and one language interface for pretraining, adaptation and inference.</span></p>
+            <div class="lede lede--more">
+              <p>Ours reuses the complete pretrained predictor through task and subtask descriptions.</p>
+              <details class="more">
+                <summary>Read more</summary>
+                <p>Subtask selection and local-progress prediction share the same VLM, with no task-specific classifier replacement or manual vocabulary mapping. Long-task adaptation fine-tunes this same predictor.</p>
+              </details>
+            </div>
+            <details class="ref">
+              <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Paper · Secs. 3.2–3.3 · Sec. 4.3 · Table 5</summary>
+              <p class="table-note">For the shared model and training, see Secs. 3.2 and 3.3 of the paper; for experiments on reusing the complete pretrained predictor, see Sec. 4.3 and Table 5.</p>
+            </details>
+          </header>
+          <div class="evaluation-workspace">
+            <nav class="evaluation-nav evaluation-nav--reader" aria-label="Reward model evaluation subsections">
+              <span class="evaluation-nav-label">In this section</span>
+              <div class="evaluation-nav-links">
+                <a id="evaluation-link-01" href="#inference-accuracy" aria-current="location"><span class="reader-topic-title">Composition comparisons</span><span class="reader-topic-description">Pretraining, adaptation, and GPT6.</span></a>
+                <a id="evaluation-link-02" href="#inference-budget-title"><span class="reader-topic-title">Inference cost</span><span class="reader-topic-description">Latency and API cost versus GPT6.</span></a>
+                <a id="evaluation-link-03" href="#reward-evaluation"><span class="reader-topic-title">Five-task results</span><span class="reader-topic-description">Reward prediction on unseen trajectories.</span></a>
+                <a id="evaluation-link-04" href="#reward-video-examples"><span class="reader-topic-title">Video examples</span><span class="reader-topic-description">Failures, retries, and progress curves.</span></a>
+              </div>
+            </nav>
+            <div class="evaluation-reader" id="evaluation-reader" tabindex="0" role="region" aria-label="Reward model evaluation content">
+          <section class="inference-context" id="inference-cost" aria-label="Composition accuracy followed by inference cost">
+            <section class="subsection inference-accuracy evaluation-pane" id="inference-accuracy" data-evaluation-panel aria-labelledby="composition-evidence-title">
+              <header class="subsection-head">
+                <h3 id="composition-evidence-title">Composition is the key!</h3>
+                <p class="inference-explanation">The comparisons below evaluate composition, pretraining, and task-related adaptation for whole-task progress prediction on red car assembly.</p>
+                <p class="inference-accuracy-caption mono-meta" id="inference-accuracy-caption">Red car model assembly · RMSE in subtask units ↓</p>
+              </header>
+              <div class="inference-accuracy-content">
+                <section class="inference-accuracy-group" aria-labelledby="accuracy-qwen-title">
+                  <h4 class="h4 group-title" id="accuracy-qwen-title"><span class="group-index" aria-hidden="true">A</span>Zero-shot · Qwen3.5-4B</h4>
+                  <div class="group-grid">
+                    <div class="scorecard-card">
+                      <div class="scorecard-wrap" role="region" aria-labelledby="accuracy-qwen-title" tabindex="0">
+                        <table class="scorecard scorecard--labels inference-accuracy-table" style="--sc-min: 0px" aria-labelledby="accuracy-qwen-title" aria-describedby="accuracy-qwen-desc inference-accuracy-caption inference-accuracy-note-desc">
+                          <colgroup><col class="col-label" /><col /><col /></colgroup>
+                          <thead>
+                            <tr><th scope="col" class="sc-left">Model / procedure</th><th scope="col" data-col="0">Selection<br />acc. ↑</th><th scope="col" data-col="1">RMSE ↓</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr><th scope="row">Base Qwen3.5-4B: direct prediction</th><td>—</td><td>4.541</td></tr>
+                            <tr><th scope="row">Base Qwen3.5-4B: composition (our workflow)</th><td>25.37%</td><td>3.068</td></tr>
+                            <tr class="sc-ours-row inference-accuracy-ours"><th scope="row">Ours (pretrained from Qwen3.5-4B; self-selected subtask)</th><td class="sc-best"><strong>69.46%</strong></td><td class="sc-best"><strong>1.380</strong></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="inference-interpretation">
+                      <!-- Keep the full table interpretations available to assistive technology. -->
+                      <div class="sr-desc" id="accuracy-qwen-desc" hidden>Composition improves whole-task progress prediction. With the same base Qwen3.5-4B model, our compositional workflow lowers RMSE from 4.541 to 3.068. Pretraining improves zero-shot transfer to car assembly. Our pretrained compositional predictor lowers RMSE further, from 3.068 to 1.380, without task-related adaptation.</div>
+                      <div class="sr-desc" id="inference-accuracy-note-desc" hidden>For the composition, pretraining, and adaptation comparisons, see Sec. 4.4 and Table 8 of the paper. GPT6-selected results combine API subtask selection with local progress prediction.</div>
+                      <div class="inference-reading-note" id="accuracy-qwen-findings">
+                        <p><strong>Composition improves whole-task progress prediction.</strong> With the same base Qwen3.5-4B model, our compositional workflow lowers RMSE from <strong>4.541 to 3.068</strong>. Pretraining improves zero-shot transfer to car assembly, lowering RMSE further to <strong>1.380</strong> without task-related adaptation.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="inference-accuracy-group" aria-labelledby="accuracy-gpt6-title">
+                  <h4 class="h4 group-title" id="accuracy-gpt6-title"><span class="group-index" aria-hidden="true">B</span>Zero-shot · GPT6</h4>
+                  <div class="group-grid">
+                    <div class="scorecard-card">
+                      <div class="scorecard-wrap" role="region" aria-labelledby="accuracy-gpt6-title" tabindex="0">
+                        <table class="scorecard scorecard--labels inference-accuracy-table" style="--sc-min: 0px" aria-labelledby="accuracy-gpt6-title" aria-describedby="accuracy-gpt6-desc inference-accuracy-caption inference-accuracy-note-desc">
+                          <colgroup><col class="col-label" /><col /><col /></colgroup>
+                          <thead>
+                            <tr><th scope="col" class="sc-left">Model / procedure</th><th scope="col" data-col="0">Selection<br />acc. ↑</th><th scope="col" data-col="1">RMSE ↓</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr><th scope="row">GPT6: direct prediction</th><td>—</td><td>1.578</td></tr>
+                            <tr><th scope="row">GPT6: composition (our workflow)</th><td class="sc-best"><strong>86.56%</strong></td><td>0.524</td></tr>
+                            <tr class="sc-ours-row inference-accuracy-ours"><th scope="row">Ours (pretrained; GPT6-selected subtask)</th><td class="sc-best"><strong>86.56%</strong></td><td class="sc-best"><strong>0.494</strong></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="inference-interpretation">
+                      <div class="sr-desc" id="accuracy-gpt6-desc" hidden>Composition also helps a frontier VLM. GPT6's whole-task RMSE falls from 1.578 to 0.524, supporting subtask-based composition as a useful formulation for this long-horizon task. Our pretrained local-progress predictor improves accuracy while reducing API cost. Keeping GPT6's selected subtask fixed, replacing its progress predictor with ours lowers RMSE from 0.524 to 0.494 and avoids the GPT6 progress API call. The subtask-selection API call remains.</div>
+                      <div class="inference-reading-note" id="accuracy-gpt6-findings">
+                        <p><strong>Composition also helps a frontier VLM.</strong> GPT6's whole-task RMSE falls from <strong>1.578 to 0.524</strong>, supporting subtask-based composition for this long-horizon task.</p>
+                        <p><strong>Our pretrained local-progress predictor improves accuracy while reducing API cost.</strong> Keeping GPT6's selected subtask fixed, replacing its progress predictor with ours lowers RMSE from <strong>0.524 to 0.494</strong> and avoids the GPT6 progress API call. The subtask-selection API call remains.</p>
+                      </div>
+                      <p class="inference-explanation gpt6-note" id="gpt6-reference"><strong>GPT6</strong> refers to <strong>GPT6-Astra-high</strong> throughout this website.</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="inference-accuracy-group" aria-labelledby="accuracy-adaptation-title">
+                  <h4 class="h4 group-title" id="accuracy-adaptation-title"><span class="group-index" aria-hidden="true">C</span>Task-related adaptation (15 trajectories)</h4>
+                  <div class="group-grid">
+                    <div class="scorecard-card">
+                      <div class="scorecard-wrap" role="region" aria-labelledby="accuracy-adaptation-title" tabindex="0">
+                        <table class="scorecard scorecard--labels inference-accuracy-table" style="--sc-min: 0px" aria-labelledby="accuracy-adaptation-title" aria-describedby="accuracy-adaptation-desc inference-accuracy-caption inference-accuracy-note-desc">
+                          <colgroup><col class="col-label" /><col /><col /></colgroup>
+                          <thead>
+                            <tr><th scope="col" class="sc-left">Model / procedure</th><th scope="col" data-col="0">Selection<br />acc. ↑</th><th scope="col" data-col="1">RMSE ↓</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr><th scope="row">GPT6: composition (zero-shot reference)</th><td>86.56%</td><td>0.524</td></tr>
+                            <tr><th scope="row">Ours, no pretraining + adaptation</th><td>93.33%</td><td>0.502</td></tr>
+                            <tr class="sc-ours-row inference-accuracy-ours"><th scope="row">Ours, pretrained + adaptation</th><td class="sc-best"><strong>94.70%</strong></td><td class="sc-best"><strong>0.394</strong></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    <div class="inference-interpretation">
+                      <div class="sr-desc" id="accuracy-adaptation-desc" hidden>With 15 adaptation trajectories, our pretrained Qwen3.5-4B model outperforms zero-shot GPT6 composition on car assembly. Whole-task RMSE is 0.394 versus 0.524, and subtask-selection accuracy is 94.70% versus 86.56%.</div>
+                      <div class="inference-reading-note" id="accuracy-adaptation-findings">
+                        <p><strong>With 15 adaptation trajectories, our pretrained Qwen3.5-4B model outperforms zero-shot GPT6 composition on car assembly.</strong> Whole-task RMSE is <strong>0.394 versus 0.524</strong>, and subtask-selection accuracy is <strong>94.70% versus 86.56%</strong>.</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <details class="ref">
+                <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Paper · Sec. 4.4 · Table 8</summary>
+                <p class="table-note" id="inference-accuracy-note">For the composition, pretraining, and adaptation comparisons, see Sec. 4.4 and Table 8 of the paper. GPT6-selected results combine API subtask selection with local progress prediction.</p>
+              </details>
+            </section>
+
+            <section class="subsection inference-budget evaluation-pane" id="inference-budget" data-evaluation-panel aria-labelledby="inference-budget-title">
+              <header class="subsection-head">
+                <h3 id="inference-budget-title">GPT6 composition comes at a high cost</h3>
+                <p class="inference-explanation">In the reported setup, composition costs <strong>≈ US$38.08 per trajectory</strong> and takes <strong>41.55 s per query</strong>.</p>
+                <p class="inference-explanation">Ours takes <strong>469.4 ms per query</strong> on an NVIDIA H100, with no API fee.</p>
+              </header>
+              <div class="scorecard-card">
+                <div class="scorecard-wrap" role="region" aria-label="Reported latency and cost" tabindex="0">
+                  <table class="scorecard scorecard--budget inference-budget-table" style="--sc-min: 560px" aria-label="Reported inference setup" aria-describedby="inference-budget-note-desc">
+                    <caption>Reported inference setup</caption>
+                    <colgroup><col class="col-label" /><col /><col /></colgroup>
+                    <thead>
+                      <tr>
+                        <th scope="col" class="sc-left">Scoring procedure</th>
+                        <th scope="col" data-col="0">Latency <small class="sc-sub">per query</small></th>
+                        <th scope="col" data-col="1">API cost <small class="sc-sub">US$ / trajectory</small></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="sc-ours-row inference-budget-ours"><th scope="row">Ours <small>NVIDIA H100</small></th><td class="sc-best"><small>2 × 234.7 ms =</small><strong>469.4</strong> <span class="inference-unit">ms</span></td><td class="sc-best">No API fee</td></tr>
+                    </tbody>
+                    <tbody aria-labelledby="inference-gpt6-total">
+                      <tr class="inference-budget-total"><th scope="row" id="inference-gpt6-total">GPT6 composition <small>Total</small></th><td><small>29.00 + 12.55 =</small><strong>41.55</strong> <span class="inference-unit">s</span></td><td><strong>≈ $38.08/traj</strong></td></tr>
+                      <tr class="inference-budget-component"><th scope="row">Subtask selection</th><td><strong>29.00</strong> <span class="inference-unit">s</span></td><td><strong>≈ $20.31/traj</strong></td></tr>
+                      <tr class="inference-budget-component"><th scope="row">Within-stage progress</th><td><strong>12.55</strong> <span class="inference-unit">s</span></td><td><strong>≈ $17.77/traj</strong></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="sr-desc" id="inference-budget-note-desc" hidden>Reported latencies were measured over 8,000 calls. For both Ours and GPT6 composition, the per-query latency sums subtask selection and within-stage progress. API costs use 1 fps on trajectories averaging 340 s in the reported experiment; local GPU costs are not priced.</div>
+              </div>
+              <p class="table-note inference-cost-scope">API costs use 1 fps on trajectories averaging 340 s; local GPU costs are not priced.</p>
+              <details class="ref">
+                <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Measurement · 8,000 calls · 1 fps</summary>
+                <p class="table-note" id="inference-budget-note">Reported latencies were measured over <strong>8,000 calls</strong>. For both Ours and GPT6 composition, the per-query latency sums subtask selection and within-stage progress. API costs use 1 fps on trajectories averaging 340 s in the reported experiment; local GPU costs are not priced.</p>
+              </details>
+            </section>
+          </section>
+          <div class="subsection prediction-evaluation evaluation-pane" id="reward-evaluation" data-evaluation-panel>
+            <header class="subsection-head">
+              <h3>Lowest RMSE on unseen trajectories across five tasks</h3>
+              <p class="prediction-evaluation-intro">With <strong>15 adaptation trajectories per task (D15)</strong>, <strong>Ours achieves the lowest RMSE on all five tasks</strong>.</p>
+              <details class="ref">
+                <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Scope · Paper Sec. 4.3 · Table 3 + 3 new tasks</summary>
+                <p class="paper-guide" id="prediction-evaluation-scope">We extend the paper's airplane and red car evaluation (Sec. 4.3, Table 3) with three additional reward-prediction tasks: Firetruck assembly, Circuit assembly and switch activation, and Pupgo car assembly.</p>
+              </details>
+            </header>
+            <div class="scorecard-card">
+              <div class="scorecard-wrap prediction-evaluation-scroll" role="region" aria-label="Five-task reward prediction results" tabindex="0">
+                <table class="scorecard prediction-evaluation-table" style="--sc-min: 700px" aria-label="RMSE on 24–30 unseen test trajectories per task (lower is better)" aria-describedby="prediction-evaluation-scope-desc">
+                  <colgroup><col class="col-label" /><col /><col /><col /><col /><col /></colgroup>
+                  <thead>
+                    <tr>
+                      <th class="sc-metric-head" rowspan="2" scope="col">Reward model</th>
+                      <th class="sc-group" colspan="5" scope="colgroup" id="prediction-evaluation-metric">RMSE on 24–30 unseen test trajectories per task ↓</th>
+                    </tr>
+                    <tr>
+                      <th scope="col" data-col="0">Pupgo car<br />assembly <span class="prediction-subtask-count sc-sub">(up to 18 subtasks)</span></th>
+                      <th scope="col" data-col="1">Firetruck<br />assembly <span class="prediction-subtask-count sc-sub">(up to 9 subtasks)</span></th>
+                      <th scope="col" data-col="2">Circuit assembly<br />and switch activation <span class="prediction-subtask-count sc-sub">(up to 3 subtasks)</span></th>
+                      <th scope="col" data-col="3">Airplane<br />assembly <span class="prediction-subtask-count sc-sub">(up to 9 subtasks)</span></th>
+                      <th scope="col" data-col="4">Red car<br />assembly <span class="prediction-subtask-count sc-sub">(up to 10 subtasks)</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><th scope="row">GPT6: Composition</th><td>1.8135</td><td>0.2914</td><td>0.2920</td><td>0.4505</td><td>0.5240</td></tr>
+                    <tr><th scope="row">SARM (D15)</th><td>0.4042</td><td>0.5406</td><td>0.3612</td><td>0.7474</td><td>1.1240</td></tr>
+                    <tr><th scope="row">SARM2 (D15)</th><td>0.3885</td><td>0.5166</td><td>0.2975</td><td>0.4980</td><td>0.6290</td></tr>
+                    <tr><th scope="row">RoboMeter (D15)</th><td>0.3189</td><td>0.5202</td><td>0.1864</td><td>0.4930</td><td>0.6580</td></tr>
+                    <tr class="sc-ours-row prediction-evaluation-ours"><th scope="row">Ours (D15)</th><td class="sc-best"><strong>0.2561</strong></td><td class="sc-best"><strong>0.2264</strong></td><td class="sc-best"><strong>0.1563</strong></td><td class="sc-best"><strong>0.3080</strong></td><td class="sc-best"><strong>0.3940</strong></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="sr-desc" id="prediction-evaluation-scope-desc" hidden>We extend the paper's airplane and red car evaluation (Sec. 4.3, Table 3) with three additional reward-prediction tasks: Firetruck assembly, Circuit assembly and switch activation, and Pupgo car assembly.</div>
+              <div class="sc-legend">
+                <span class="sc-legend-ours">Ours (D15)</span>
+                <span><i class="sw sw-ours" aria-hidden="true"></i>Best in column</span>
+                <span class="sc-legend-note">In subtask units; lower is better.</span>
+              </div>
+            </div>
+          </div>
+          <section class="subsection evaluation-pane" id="reward-video-examples" data-evaluation-panel aria-labelledby="reward-video-title">
+            <header class="subsection-head prediction-examples-heading">
+              <h3 id="reward-video-title">How predictions respond to setbacks</h3>
+              <p>Watch the contact-rich interactions, failures, and retries alongside each model's progress curve.</p>
+            </header>
+            <div id="prediction-player"></div>
+            <p class="prediction-section-note">Progress is shown in accumulated subtask units; pink marks annotated failure, and boundary triangles mark predictions outside the plotted range.</p>
+          </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="details" aria-labelledby="details-title">
+        <div class="container container--wide">
+          <header class="section-header">
+            <p class="kicker">04 · Method details</p>
+            <h2 id="details-title">The specifics the paper defers to this page.</h2>
+            <p class="lede">Progress supervision, model training, and policy-learning setups.</p>
+          </header>
+          <div class="evaluation-workspace method-workspace">
+            <nav class="evaluation-nav evaluation-nav--reader" aria-label="Method details subsections">
+              <span class="evaluation-nav-label">In this section</span>
+              <div class="evaluation-nav-links">
+                <a id="method-link-01" href="#target-construction" aria-current="location"><span class="reader-topic-title">Progress supervision</span><span class="reader-topic-description">Composition, annotations, failure and recovery.</span></a>
+                <a id="method-link-02" href="#model-training"><span class="reader-topic-title">Model &amp; training</span><span class="reader-topic-description">Architecture, inputs, and optimization settings.</span></a>
+                <a id="method-link-03" href="#policy-learning"><span class="reader-topic-title">Policy-learning setups</span><span class="reader-topic-description">Offline RL and progress-weighted BC.</span></a>
+              </div>
+            </nav>
+            <div class="evaluation-reader method-reader" id="method-reader" tabindex="0" role="region" aria-label="Method details content">
+            <section class="evaluation-pane method-pane" id="target-construction" data-evaluation-panel aria-labelledby="target-construction-title">
+              <header class="method-pane-heading"><h3 id="target-construction-title">Structured progress supervision</h3><span class="sum-meta">Sec. 3.1 · Fig. 3</span></header>
+              <div class="details-body method-module-stack">
+                <section class="method-module" id="supervision-example" aria-labelledby="supervision-title">
+                  <header class="supervision-heading">
+                    <p class="supervision-context mono-meta">Airplane assembly · Insert the screw · Subtask 7 of 9</p>
+                    <h4 class="h4" id="supervision-title">Reset local progress. Preserve completed work.</h4>
+                  </header>
+                  <div class="supervision-stage">
+                    <div class="supervision-media">
+                      <div class="supervision-video-frame">
+                        <video id="supervision-video" data-src="assets/video/supervision/screw-insertion/cameras.mp4" poster="assets/video/supervision/screw-insertion/cameras.jpg" width="1280" height="960" muted playsinline preload="metadata" aria-label="Four synchronized camera views of screw insertion, failure and recovery"></video>
+                      </div>
+                      <div class="supervision-plot">
+                        <div class="supervision-legend" aria-label="Curve legend">
+                          <span><i class="supervision-swatch supervision-swatch--ours"></i>Subtask + AQ (ours)</span>
+                          <span><i class="supervision-swatch supervision-swatch--credit"></i>Completed credit</span>
+                          <span><i class="supervision-swatch supervision-swatch--failure"></i>Regressed</span>
+                        </div>
+                        <div data-supervision-chart></div>
+                        <div class="supervision-target-link" role="group" aria-label="Current local and whole-task progress">
+                          <span>Local <i>p</i> <strong data-supervision-local-value>= 0</strong></span>
+                          <span aria-hidden="true">→</span>
+                          <span>Whole-task <i>P</i> <strong data-supervision-whole-value>= 6/9</strong></span>
+                        </div>
+                      </div>
+                      <div class="supervision-transport transport">
+                        <button class="btn btn--sm btn--play" type="button" data-supervision-play>Play</button>
+                        <button class="btn btn--sm btn--ghost" type="button" data-supervision-replay>Replay</button>
+                        <input type="range" min="0" max="1116" step="1" value="0" data-supervision-seek aria-label="Elapsed time within the screw insertion subtask" />
+                        <output class="transport-time" data-supervision-time>0:00.0 / 0:37.2</output>
+                        <span class="supervision-speed transport-chip" aria-label="Playback speed fixed at 4 times">4× playback</span>
+                      </div>
+                    </div>
+                    <div class="supervision-segments" role="group" aria-label="Select an annotated segment">
+                      <button type="button" class="supervision-segment" data-supervision-segment="attempt" aria-pressed="true">
+                        <span class="supervision-segment-label">1 · Before failure</span>
+                        <strong>Case A · Interrupted by regression</strong>
+                        <span class="supervision-segment-window" data-supervision-window="attempt"></span>
+                        <span class="supervision-segment-value"><i>T</i><sub>chunk</sub> = <span data-supervision-duration="attempt"></span> s</span>
+                      </button>
+                      <button type="button" class="supervision-segment" data-supervision-segment="failure" aria-pressed="false">
+                        <span class="supervision-segment-label">2 · Regression</span>
+                        <strong>Reset local progress</strong>
+                        <span class="supervision-segment-value">\(p=0\)</span>
+                        <span class="supervision-segment-window">Completed credit stays at <span data-supervision-credit></span></span>
+                      </button>
+                      <button type="button" class="supervision-segment" data-supervision-segment="recovery" aria-pressed="false">
+                        <span class="supervision-segment-label">3 · Recovery</span>
+                        <strong>Case B · Reaches the subtask boundary</strong>
+                        <span class="supervision-segment-window" data-supervision-window="recovery"></span>
+                        <span class="supervision-segment-value"><i>T</i><sub>chunk</sub> = <span data-supervision-duration="recovery"></span> s</span>
+                      </button>
+                    </div>
+                    <p class="supervision-state" data-supervision-status role="status">Nominal execution · Six completed subtasks retain their credit.</p>
+                    <p class="supervision-error" data-supervision-error role="status" hidden></p>
+                  </div>
+                  <div class="supervision-explanation">
+                    <p>In this constructed target, failure resets insertion progress to 0 and whole-task progress to 6/9. The six completed subtasks retain their credit throughout failure and recovery.</p>
+                    <p>Each attempt here is a chunk of duration \(T_{\mathrm{chunk}}\): the first ends in regression (Case A), and the recovery reaches the subtask boundary (Case B).</p>
+                  </div>
+                </section>
+                <div class="details-intro">
+                  <p>The construction below turns sparse annotations into dense progress targets for the synchronized example above.</p>
+                  <details class="ref">
+                    <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Paper · Sec. 3.1 · Fig. 3 · Sec. 4.2 · Tables 1–2</summary>
+                    <p class="paper-guide"><strong>In the main paper:</strong> the supervision method in Sec. 3.1 and Fig. 3, and annotation quality and target utility in Sec. 4.2 and Tables 1–2.</p>
+                  </details>
+                </div>
+                <section class="method-module" id="target-composition" aria-labelledby="target-composition-title">
+                  <h4 class="h4" id="target-composition-title">Whole-task composition</h4>
+                  <div class="module-split">
+                    <div class="math-block math-block--hero">\[ P_t^\star=\frac{k_t^\star+p_t}{K}. \]</div>
+                    <div class="module-text">
+                      <p>Here, \(t\) is global time along the whole-task trajectory. \(k_t^\star\) is the zero-based subtask index, \(p_t\) is that subtask's local progress at global time \(t\), and \(K\) is the number of subtasks. Completed subtasks retain their credit when \(p_t\) resets. At a completed boundary, \((k,1)\) and \((k+1,0)\) coincide.</p>
+                      <p><strong>The remaining quantity is \(p_t\):</strong> below, construct this local progress from subtask boundaries, action quality, and subtask outcomes.</p>
+                    </div>
+                  </div>
+                </section>
+                <section class="method-module" id="target-annotations" aria-labelledby="annotation-protocol">
+                  <h4 class="h4" id="annotation-protocol">Sparse annotations</h4>
+                  <p class="module-lede">Annotators mark subtask boundaries, action-quality (AQ) intervals of suboptimal or regressed execution, and subtask outcomes. Unmarked intervals are nominal; no dense progress scores are required.</p>
+                  <dl class="quality-definitions">
+                    <div class="quality quality--good"><dt><span class="q q--good">Nominal</span></dt><dd>Execution follows the task normally.</dd></div>
+                    <div class="quality quality--warn"><dt><span class="q q--warn">Suboptimal</span></dt><dd>Degraded execution without physical failure, such as a misaligned screw that remains held.</dd></div>
+                    <div class="quality quality--bad"><dt><span class="q q--bad">Regressed</span></dt><dd>Local progress is lost through physical failure, such as dropping the screw.</dd></div>
+                  </dl>
+                </section>
+                <section class="method-module target-algorithm" id="target-algorithm" aria-labelledby="supervision-implementation-title">
+                  <h4 class="h4" id="supervision-implementation-title">Construct local progress</h4>
+                  <p class="module-lede">The full construction uses the parameters and three steps below to turn sparse annotations into a local progress target.</p>
+                  <section id="target-definitions" aria-labelledby="target-definitions-title">
+                    <h5 class="h5" id="target-definitions-title">Construction parameters</h5>
+                    <dl class="target-parameters" aria-label="Construction parameters">
+                      <div><dt>\(\rho&gt;1\)</dt><dd>Nominal-to-suboptimal slope ratio</dd></div>
+                      <div><dt>\(0&lt;p_{\mathrm{cap}}&lt;1\)</dt><dd>The maximum within-subtask progress we can reach before a regression can happen.</dd></div>
+                      <div><dt>\(T_{\min}&gt;0\)</dt><dd>Fastest measured time to reach \(p_{\mathrm{cap}}\) across diverse trials.</dd></div>
+                    </dl>
+                    <details class="target-parameter-details method-module-fold disclosure disclosure--card" id="target-parameter-selection">
+                      <summary>How the example parameters are set <span class="sum-meta">p<sub>cap</sub> = 0.95 · T<sub>min</sub> = 9 s</span></summary>
+                      <div class="disclosure-body">
+                        <p>For screw insertion, we compare successful demonstrations with deliberately induced failures across 20+ diverse trials collected in advance.</p>
+                        <p><strong>\(p_{\mathrm{cap}}\): the latest observed failure point.</strong> Failure can occur while picking up the screw, or much later, just before the screw enters the hole. Comparing these points with successful demonstrations places the latest observed failures that reset progress just below 0.95 local progress. We therefore use \(p_{\mathrm{cap}}=0.95\) for this subtask.</p>
+                        <p><strong>\(T_{\min}\): the fastest measured time to reach that point.</strong> Across the diverse trajectories, the fastest observed time to reach this progress level is approximately 9 s. We use \(T_{\min}=9\,\mathrm{s}\) in this example.</p>
+                      </div>
+                    </details>
+                  </section>
+                  <details class="disclosure disclosure--card algorithm-fold" id="target-algorithm-steps">
+                    <summary>The three construction steps <span class="sum-meta">locate · endpoint · accumulate</span></summary>
+                    <div class="disclosure-body">
+                      <ol class="target-algorithm-steps" aria-label="Local progress construction">
+                        <li>
+                          <h5>Locate and weight the chunk</h5>
+                          <div>
+                            <p>Locate a chunk between its latest reset, \(\tau_{\mathrm{start}}\), and the next reset, \(\tau_{\mathrm{next}}\). Resets are triggered by subtask boundaries or regressed AQ; nominal/suboptimal changes stay within the same chunk.</p>
+                            <p>Both timestamps use \(t_{\mathrm{subtask}}\), the video time measured in seconds from the subtask's start. The full chunk duration and elapsed time within it are:</p>
+                            <div class="math-block">\[ \begin{aligned} T_{\mathrm{chunk}}&=\tau_{\mathrm{next}}-\tau_{\mathrm{start}},\\ t_{\mathrm{chunk}}&=t_{\mathrm{subtask}}-\tau_{\mathrm{start}}. \end{aligned} \]</div>
+                            <p>Use \(w_i=\rho\) for nominal updates and \(w_i=1\) for suboptimal updates.</p>
+                            <div class="math-block">\[ N_{\mathrm{chunk}}=\sum_{i\in\mathcal C}w_i\,\Delta t_{\mathrm{chunk},i}. \]</div>
+                            <p class="table-note">\(\mathcal C\) contains the current chunk's non-regressed updates. Use \(\Delta t_{\mathrm{chunk},i}=t_{\mathrm{chunk},i}-t_{\mathrm{chunk},i-1}\), with \(t_{\mathrm{chunk},0}=0\) at the reset. \(N_{\mathrm{chunk}}\) is their weighted duration.</p>
+                          </div>
+                        </li>
+                        <li>
+                          <h5>Set the endpoint, then the slope</h5>
+                          <div>
+                            <p>Let \(p_{\mathrm{chunk\_last}}\) be the target progress at the chunk's last non-regressed update. Choose this endpoint according to how the chunk ends:</p>
+                            <div class="target-algorithm-branches">
+                              <div data-supervision-branch="interrupted">
+                                <h6>Case A · Interrupted by regression</h6>
+                                <p>Regressed AQ begins before the subtask boundary. The time available determines the endpoint before the reset:</p>
+                                <div class="math-block">\[ p_{\mathrm{chunk\_last}}=p_{\mathrm{cap}}\min\!\left(1,\frac{T_{\mathrm{chunk}}}{T_{\min}}\right). \]</div>
+                                <p class="table-note">A shorter chunk reaches a proportionally lower endpoint; a chunk lasting at least \(T_{\min}\) reaches \(p_{\mathrm{cap}}\).</p>
+                              </div>
+                              <div data-supervision-branch="boundary">
+                                <h6>Case B · Reaches the subtask boundary</h6>
+                                <p>The chunk reaches the boundary without an intervening regression. Its endpoint is the annotated subtask outcome.</p>
+                                <div class="math-block">\[ p_{\mathrm{chunk\_last}}=\mathrm{subtask\_outcome}. \]</div>
+                              </div>
+                            </div>
+                            <p>For either case, use this endpoint to normalize the weighted updates:</p>
+                            <div class="math-block">\[ \mathrm{slope}_{\mathrm{chunk}}=\frac{p_{\mathrm{chunk\_last}}}{N_{\mathrm{chunk}}}. \]</div>
+                          </div>
+                        </li>
+                        <li class="target-algorithm-accumulate" data-supervision-branch="regressed">
+                          <h5>Accumulate or reset</h5>
+                          <div>
+                            <p>During regression, local progress is held at 0. Otherwise, accumulate from the current chunk's reset:</p>
+                            <div class="math-block">\[ p_{t_{\mathrm{chunk},j}}=\mathrm{slope}_{\mathrm{chunk}}\sum_{i=1}^{j}w_i\,\Delta t_{\mathrm{chunk},i}. \]</div>
+                            <p>At the corresponding global time \(t\), use this local value as \(p_t\) in the <a href="#target-composition">whole-task composition</a> above.</p>
+                          </div>
+                        </li>
+                      </ol>
+                    </div>
+                  </details>
+                </section>
+              </div>
+            </section>
+            <section class="evaluation-pane method-pane" id="model-training" data-evaluation-panel aria-labelledby="model-training-title">
+              <header class="method-pane-heading"><h3 id="model-training-title">Model and training settings</h3><span class="sum-meta">Secs. 3.2–3.3</span></header>
+              <div class="details-body">
+                <div class="method-reading-flow">
+                  <section class="method-module" id="training-architecture" aria-labelledby="training-architecture-title">
+                    <h4 class="h4" id="training-architecture-title">Architecture and training</h4>
+                    <p>Training updates the LoRA adapters and progress head (including the temporal transformer) while keeping the base model weights and visual encoder frozen.</p>
+                    <div class="table-wrap table-card"><table class="table spec data-table">
+                      <tbody>
+                        <tr><th scope="row">Backbone</th><td>Qwen3.5-4B vision–language model; base weights and visual encoder frozen</td></tr>
+                        <tr><th scope="row">Trainable</th><td>LoRA adapters (rank 32) in the language decoder · progress head</td></tr>
+                        <tr><th scope="row">Learning rate</th><td>\(2\times10^{-5}\)</td></tr>
+                        <tr><th scope="row">Batch size</th><td>128 (across all methods)</td></tr>
+                      </tbody>
+                    </table></div>
+                  </section>
+                  <section class="method-module" id="training-inputs" aria-labelledby="training-inputs-title">
+                    <h4 class="h4" id="training-inputs-title">Inputs and inference</h4>
+                    <p>The same language interface supports subtask selection and local-progress prediction across pretraining, adaptation, and inference.</p>
+                    <div class="table-wrap table-card"><table class="table spec data-table">
+                      <tbody>
+                        <tr><th scope="row">Input per query</th><td>Task instruction, the ordered subtask descriptions, and eight sampled timesteps of synchronized camera views around the query time</td></tr>
+                        <tr><th scope="row">Two queries</th><td>Selection picks the subtask to evaluate from the supplied list; progress is predicted for that description.</td></tr>
+                        <tr><th scope="row">Same everywhere</th><td>One architecture and one language interface for pretraining, adaptation and inference</td></tr>
+                      </tbody>
+                    </table></div>
+                  </section>
+                </div>
+              </div>
+            </section>
+            <section class="evaluation-pane method-pane" id="policy-learning" data-evaluation-panel aria-labelledby="policy-learning-title">
+              <header class="method-pane-heading"><h3 id="policy-learning-title">Policy-learning setups</h3></header>
+              <div class="details-body method-reading-flow">
+            <section class="method-module policy-setup-section" id="offline-rl" aria-labelledby="offline-rl-title">
+              <header class="policy-setup-heading"><h4 class="h4" id="offline-rl-title">Offline RL</h4><span class="sum-meta">Sec. 3.4</span></header>
+              <div class="policy-setup-body">
+                <p>Reward models share BC rollouts and the reward conversion (paper, Sec. 3.4).</p>
+                <div class="policy-setup-table table-card">
+                  <table class="table policy-setup-data data-table" aria-label="Offline RL training data and evaluation trials">
+                    <thead><tr><th scope="col">Task</th><th scope="col">Training data</th><th scope="col" class="num">Eval. trials<small>per policy</small></th></tr></thead>
+                    <tbody>
+                      <tr><th scope="row"><a href="#policy-star">Star insertion</a></th><td>50 rollouts</td><td class="num">20</td></tr>
+                      <tr><th scope="row"><a href="#policy-tube">Tube transfer</a></th><td>45 rollouts</td><td class="num">12</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p id="offline-rl-parameters">Action-chunk horizon: \(H=20\) steps. Per-step discount factor: \(\gamma=0.997\).</p>
+              </div>
+            </section>
+            <section class="method-module policy-setup-section" id="weighted-bc" aria-labelledby="weighted-bc-title">
+              <header class="policy-setup-heading"><h4 class="h4" id="weighted-bc-title">Progress-weighted behavior cloning (Weighted BC)</h4><span class="sum-meta">Sec. 4.5</span></header>
+              <div class="policy-setup-body">
+                <p>Within each task and iteration, reward-model comparisons on airplane and red car assembly share data, a parent policy, and the same thresholds and weighting rule (paper, Sec. 4.5).</p>
+                <p>We use <strong>D100 versions of PRISM and SARM2</strong> (fine-tuned with 100 target-task trajectories).</p>
+                <div class="policy-setup-table table-card">
+                  <table class="table policy-setup-data data-table" aria-label="Weighted BC training data and evaluation trials for airplane and red car assembly">
+                    <thead><tr><th scope="col">Iteration</th><th scope="col">Training data<small>per task</small></th><th scope="col" class="num">Eval. trials<small>per policy</small></th></tr></thead>
+                    <tbody>
+                      <tr><th scope="row">Iter1<small>BC parent</small></th><td>20 demonstrations + 12 shared DAgger trajectories</td><td class="num">12</td></tr>
+                      <tr><th scope="row">Iter2<small>Best Iter1 parent</small></th><td>Original 20 demonstrations + 12 new successful rollouts<small>Excludes Iter1 DAgger trajectories.</small></td><td class="num">12</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+              </div>
+            </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="tasks" aria-labelledby="tasks-title">
+        <div class="container container--wide">
+          <header class="section-header">
+            <p class="kicker">05 · Pretraining task examples</p>
+            <h2 id="tasks-title">200 mostly short tasks; 50 held out.</h2>
+            <p class="lede">A sample of the everyday-manipulation tasks used to pretrain our model, with subtask descriptions and structured quality annotations. The long assembly tasks and the two offline-RL tasks are held out.</p>
+            <details class="ref">
+              <summary><svg class="ref-ico" aria-hidden="true"><use href="#i-book" /></svg>Paper · Sec. 4.3 · Fig. 4</summary>
+              <p class="paper-guide"><strong>In the main paper:</strong> zero-shot performance on 50 held-out tasks and the effect of pretraining coverage in Sec. 4.3 and Fig. 4.</p>
+            </details>
+          </header>
+          <div class="gallery" id="task-gallery" data-tasks></div>
+          <p class="gallery-hint mono-meta" aria-hidden="true">Tiles marked <span class="tile-dot"></span> show the full instruction on hover or tap.</p>
+        </div>
+      </section>
+
+      <section class="section" id="bibtex" aria-labelledby="bibtex-title">
+        <div class="container">
+          <header class="section-header">
+            <p class="kicker">06 · BibTeX</p>
+            <h2 id="bibtex-title">Citation.</h2>
+          </header>
+          <div class="bibtex-block bibtex">
+            <button class="bibtex-copy" id="copy-bibtex" type="button" aria-label="Copy BibTeX">
+              <svg aria-hidden="true"><use href="#i-copy" /></svg>
+              <span class="copy-label">Copy</span>
+            </button>
+            <pre class="bibtex-code" id="bibtex-text">@misc{prism2026,
+  title     = {{PRISM}: Compositional Reward Modeling for Long-Horizon
+               Manipulation with Structured Progress Supervision},
+  author    = {Cao, Zi-ang and Zheng, Kaiyuan and Xu, Yinzhen and
+               Duan, Haonan and Gu, Jiasheng and Hu, Fengyuan and
+               Zhu, Nan and Lei, Kun and Lin, Kevin and Zheng, Ruijie and
+               Gao, Shenyuan and Zhu, Fangqi and Zhang, Zhe and
+               Poovendran, Radha and Fan, Linxi and Wang, Guanzhi and Zhu, Yuke},
+  year      = {2026},
+  url       = {https://robot-reward-prism.github.io/}
+}</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container container--wide footer-inner">
+        <div class="footer-brand">
+          <span class="footer-mark"><svg aria-hidden="true"><use href="#mark" /></svg>PRISM</span>
+          <span class="footer-tag">Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision</span>
+        </div>
+        <nav class="footer-links" aria-label="Footer">
+          <a href="assets/paper/reward_PRISM_arxiv_v1.pdf"><svg class="footer-ico" aria-hidden="true"><use href="#i-doc" /></svg>Paper</a>
+          <a href="#submission-video"><svg class="footer-ico" aria-hidden="true"><use href="#i-play" /></svg>Video</a>
+          <a href="#bibtex"><svg class="footer-ico" aria-hidden="true"><use href="#i-braces" /></svg>BibTeX</a>
+        </nav>
+      </div>
+      <div class="container container--wide footer-affil">
+        <p><svg class="mark-inline" aria-hidden="true"><use href="#mark" /></svg> PRISM · NVIDIA · The University of Texas at Austin · University of Washington</p>
+        <span class="brand-switch" role="group" aria-label="Accent colour">
+          <button type="button" data-set-brand="green"><i aria-hidden="true"></i>green</button>
+          <button type="button" data-set-brand="anon"><i aria-hidden="true"></i>violet</button>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>
