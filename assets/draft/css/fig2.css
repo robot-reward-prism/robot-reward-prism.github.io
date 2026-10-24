@@ -1,0 +1,434 @@
+/* ==========================================================================
+   PRISM draft · Fig. 2 "From local to global task progress", animated.
+   Markup: draft.html #fig2 · script: assets/draft/js/fig2.js (+ fig2-data.js).
+   Every module is on screen from the first frame; the script only moves what
+   is inside them. Three layouts, picked by the card's own width:
+     narrow  < 640 px   one column; the description runs down the left edge, k down the right edge
+     medium  640-979    inputs and model on top; local + composition, then a full-width global plot
+     wide    >= 980     the paper's arrangement: inputs | model | outputs column
+   Text is never below 14 px. All colours live here: fig2.js reads the
+   --f2d-* tokens (getComputedStyle) for everything it draws on canvas.
+   ========================================================================== */
+
+.f2d {
+  --f2d-bg: var(--hero-bg, #0b0a16);          /* the cover film's background */
+  --f2d-ink: #f4f1ff;
+  --f2d-ink-2: #cdc8db;
+  --f2d-ink-3: #a59fb6;                        /* 7:1 on the card */
+  --f2d-edge: rgba(255, 255, 255, 0.11);
+  --f2d-panel: rgba(255, 255, 255, 0.055);
+  --f2d-panel-2: rgba(255, 255, 255, 0.022);
+  --f2d-frozen-rgb: 169, 196, 255;             /* the paper's frozen blue, lit for a dark card */
+  --f2d-train-rgb: 232, 186, 132;              /* the paper's trainable sand */
+  --f2d-train-ink: #ffe6c7;
+  /* one hue per subtask: the cover film's spectrum without red (red only ever means failure on this page) */
+  --f2d-s1: #f0b446; --f2d-s2: #e3cf5a; --f2d-s3: #b9dc63; --f2d-s4: #76da8c; --f2d-s5: #40c8be;
+  --f2d-s6: #4fb3e6; --f2d-s7: #6096ff; --f2d-s8: #8b8cff; --f2d-s9: #a987ff;
+  --c: var(--f2d-s1);                          /* the selected subtask's hue (data-k on the card) */
+  /* canvas inks, read by fig2.js */
+  --f2d-wire: rgba(226, 222, 255, 0.22);
+  --f2d-arrow: rgba(236, 232, 255, 0.62);
+  --f2d-spark: #ffffff;
+  --f2d-p-plain: #f1edff;
+  --f2d-p-cam: #d6e4ff;
+  --f2d-p-feat: #ece6ff;
+  --f2d-grid: #ffffff;                         /* drawn at 5-20 % */
+  --f2d-curve: #f4f1ff;
+  --f2d-tag: rgba(11, 10, 22, 0.8);
+  --f2d-bead: #121026;
+}
+.f2d > figcaption { font-size: 0.9rem; }      /* 14.4 px: the figure's own caption stays >= 14 px */
+.f2d-link {
+  display: inline; margin: 0 0 0 0.2rem; padding: 0; border: 0; background: none;
+  font: inherit; line-height: inherit; color: var(--accent-text); cursor: pointer;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 0.18em;
+}
+.f2d-link:hover { color: var(--accent-ink); }
+
+/* ------------------------------------------------------------------ card */
+.f2d-card {
+  position: relative;
+  container: f2d / inline-size;
+  border-radius: 20px;
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--f2d-ink);
+  font-family: var(--font-sans);
+  line-height: 1.3;
+  background:
+    radial-gradient(65% 55% at 6% 0%, rgba(169, 135, 255, 0.16), transparent 72%),
+    radial-gradient(55% 60% at 100% 100%, rgba(64, 200, 190, 0.1), transparent 72%),
+    var(--f2d-bg);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 28px 70px -30px rgba(11, 10, 22, 0.65);
+  color-scheme: dark;
+}
+.f2d-card::before {                            /* faint dot grid, fading out towards the edges */
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.3px);
+  background-size: 20px 20px;
+  -webkit-mask-image: radial-gradient(110% 85% at 45% 40%, #000 25%, transparent 80%);
+  mask-image: radial-gradient(110% 85% at 45% 40%, #000 25%, transparent 80%);
+}
+.f2d-card::after {                             /* the nine subtask hues as a hairline */
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 2; pointer-events: none;
+  background: linear-gradient(90deg, var(--f2d-s1), var(--f2d-s2), var(--f2d-s3), var(--f2d-s4), var(--f2d-s5),
+    var(--f2d-s6), var(--f2d-s7), var(--f2d-s8), var(--f2d-s9));
+  opacity: 0.75;
+}
+.f2d-card[data-k="0"] { --c: var(--f2d-s1); } .f2d-card[data-k="1"] { --c: var(--f2d-s2); }
+.f2d-card[data-k="2"] { --c: var(--f2d-s3); } .f2d-card[data-k="3"] { --c: var(--f2d-s4); }
+.f2d-card[data-k="4"] { --c: var(--f2d-s5); } .f2d-card[data-k="5"] { --c: var(--f2d-s6); }
+.f2d-card[data-k="6"] { --c: var(--f2d-s7); } .f2d-card[data-k="7"] { --c: var(--f2d-s8); }
+.f2d-card[data-k="8"] { --c: var(--f2d-s9); }
+
+.f2d-wires, .f2d-fx { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.f2d-in { position: relative; z-index: 1; padding: 14px 22px 10px 18px; }
+.f2d-fallback { display: none; width: 100%; height: auto; background: #fff; }
+
+/* Without the script (or if it cannot run): the paper's static figure, on a white plate. */
+html:not(.f2d-js) .f2d-in, html:not(.f2d-js) .f2d-wires, html:not(.f2d-js) .f2d-fx { display: none; }
+html:not(.f2d-js) .f2d-fallback { display: block; }
+html:not(.f2d-js) .f2d-card { background: #fff; border-radius: var(--r-md); box-shadow: 0 0 0 1px var(--line); }
+html:not(.f2d-js) .f2d-card::before, html:not(.f2d-js) .f2d-card::after { display: none; }
+html:not(.f2d-js) .f2d-link, html:not(.f2d-js) .f2d-cap-live { display: none; }  /* the static figure is on the page */
+
+/* ------------------------------------------------------------------ nodes (no backdrop blur: the flow canvas under them changes every frame) */
+.f2d-node {
+  position: relative;
+  min-width: 0;
+  padding: 10px 13px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--f2d-panel), var(--f2d-panel-2));
+  border: 1px solid var(--f2d-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 14px 34px -16px rgba(0, 0, 0, 0.7);
+}
+.f2d-node p { margin: 0; }
+.f2d-title { font: 600 15px/1.25 var(--font-sans); letter-spacing: -0.005em; color: var(--f2d-ink); white-space: nowrap; }
+.f2d-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 2px 12px; flex-wrap: wrap; }
+.f2d-m, .f2d-math { font-family: var(--font-serif); font-style: italic; font-weight: 500; }
+.f2d-math { font-size: 19px; line-height: 1; color: var(--f2d-ink-2); white-space: nowrap; }
+.f2d-math i { font-style: italic; }
+.f2d-math sub, .f2d-fp sub, .f2d-xrow sub { font-size: 14px; line-height: 0; vertical-align: -0.28em; font-style: italic; margin-left: 0.04em; }
+.f2d-hat { position: relative; display: inline-block; line-height: 1; }
+.f2d-hat::before {                             /* a drawn circumflex: U+0302 is not in the self-hosted font subsets */
+  content: ""; position: absolute; left: 50%; top: 0.04em;
+  width: 0.23em; height: 0.23em;
+  border-left: 0.072em solid currentColor; border-top: 0.072em solid currentColor;
+  transform: translateX(-12%) rotate(45deg);
+}
+
+/* ------------------------------------------------------------------ inputs */
+.f2d-ctx { grid-area: ctx; display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+.f2d-quote { font: 500 16px/1.35 var(--font-sans); color: var(--f2d-ink); }
+.f2d-sub { font-size: 14px; color: var(--f2d-ink-3); }
+
+.f2d-obs { grid-area: obs; display: flex; flex-direction: column; }
+.f2d-obs > .f2d-title { margin-bottom: auto; }    /* any spare height centres the tiles */
+.f2d-obs .f2d-tiles { margin-bottom: auto; }
+.f2d-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.f2d-tile { position: relative; margin: 0; min-width: 0; }
+.f2d-tile::before { content: ""; display: block; aspect-ratio: 4 / 3; border-radius: 8px; background: #05060a; }
+.f2d-tile canvas, .f2d-crop {
+  position: absolute; left: 0; top: 0; width: 100%; aspect-ratio: 4 / 3; height: auto;
+  border-radius: 8px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.13), 0 8px 18px -10px rgba(0, 0, 0, 0.8);
+}
+.f2d-crop { overflow: hidden; }
+/* The loop is a 2 x 2 grid (Top | Bottom / Left wrist | Right wrist). The Top tile is the <video> itself,
+   twice the tile's size and anchored top-left, so only its Top quarter shows; the other tiles are canvases. */
+.f2d-video {
+  position: absolute; left: 0; top: 0; width: 200%; height: 200%; max-width: none;
+  object-fit: fill; background: #05060a; pointer-events: none;
+}
+.f2d-tile-l {
+  display: block; margin-top: 4px; font: 500 14px/1.25 var(--font-sans); color: var(--f2d-ink-2);
+  text-align: center; white-space: nowrap;
+}
+.f2d-long { display: none; }
+.f2d-short { display: inline; }
+
+/* ------------------------------------------------------------------ selector */
+.f2d-sel { grid-area: sel; display: flex; flex-direction: column; justify-content: center; }
+.f2d-count { font: 500 14px/1 var(--font-mono); color: var(--f2d-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.f2d-count b { font-weight: 600; color: var(--f2d-ink); }
+.f2d-pills-wrap { position: relative; margin-top: 10px; }
+.f2d-pills { position: relative; z-index: 1; display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.f2d-pills li { flex: 1 1 0; min-width: 0; max-width: 42px; display: flex; }
+.f2d-pill {
+  --c: var(--f2d-s1);
+  flex: 1 1 auto; min-width: 0; height: 32px; padding: 0;
+  border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--f2d-ink-3);
+  font: 600 14px/1 var(--font-mono);
+  cursor: pointer;
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
+}
+.f2d-pills li:nth-child(1) .f2d-pill { --c: var(--f2d-s1); } .f2d-pills li:nth-child(2) .f2d-pill { --c: var(--f2d-s2); }
+.f2d-pills li:nth-child(3) .f2d-pill { --c: var(--f2d-s3); } .f2d-pills li:nth-child(4) .f2d-pill { --c: var(--f2d-s4); }
+.f2d-pills li:nth-child(5) .f2d-pill { --c: var(--f2d-s5); } .f2d-pills li:nth-child(6) .f2d-pill { --c: var(--f2d-s6); }
+.f2d-pills li:nth-child(7) .f2d-pill { --c: var(--f2d-s7); } .f2d-pills li:nth-child(8) .f2d-pill { --c: var(--f2d-s8); }
+.f2d-pills li:nth-child(9) .f2d-pill { --c: var(--f2d-s9); }
+.f2d-pill:hover { border-color: rgba(255, 255, 255, 0.4); color: var(--f2d-ink); }
+.f2d-pill:focus-visible { outline: 2px solid var(--f2d-ink); outline-offset: 2px; }
+.f2d-pill.is-done { background: color-mix(in srgb, var(--c) 84%, var(--f2d-bg)); border-color: transparent; color: var(--f2d-bg); }
+.f2d-pill.is-now { color: var(--f2d-ink); border-color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+.f2d-pill.is-pop { animation: f2d-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.4); }
+@keyframes f2d-pop {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--c); }
+  35% { transform: scale(1.16); box-shadow: 0 0 18px 2px var(--c); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+.f2d-halo {                                    /* slides from pill to pill; the script sets its x and width */
+  position: absolute; left: 0; top: -5px; height: 42px; width: 40px; border-radius: 12px;
+  border: 1.5px solid var(--c);
+  box-shadow: 0 0 18px -2px var(--c), inset 0 0 14px -6px var(--c);
+  pointer-events: none; z-index: 2;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  will-change: transform;
+}
+
+/* the selected description: rides under the selected pill and feeds the VLM (and k). One line (the film's short
+   stage names); it would wrap within the selector's width, which fig2.js sets as its max-width. */
+.f2d-desc {
+  position: absolute; left: 0; top: 0; z-index: 3;
+  display: inline-flex; align-items: flex-start; gap: 8px; box-sizing: border-box;
+  min-height: 32px; padding: 6px 13px 6px 11px; border-radius: 16px;
+  background: rgba(19, 17, 34, 0.94);
+  border: 1px solid color-mix(in srgb, var(--c) 62%, transparent);
+  box-shadow: 0 0 0 4px rgba(11, 10, 22, 0.55), 0 0 26px -8px var(--c);
+  font: 500 14px/1.3 var(--font-sans); color: var(--f2d-ink); white-space: normal; text-wrap: balance;
+  will-change: transform;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.f2d-desc i { width: 8px; height: 8px; margin-top: 0.36em; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); flex: none; }
+.f2d-desc.is-swap span { animation: f2d-swap 0.45s ease; }
+@keyframes f2d-swap { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+/* ------------------------------------------------------------------ model */
+.f2d-model {
+  grid-area: model; align-self: center;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr); align-items: stretch;
+  column-gap: 14px; row-gap: 8px;
+}
+.f2d-vlm, .f2d-head { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+.f2d-title--model { font-size: 18px; letter-spacing: -0.01em; }
+.f2d-title--model .f2d-m { font-size: 21px; font-weight: 600; }
+.f2d-vlm {
+  min-height: 80px; padding: 10px 8px;
+  background: linear-gradient(160deg, rgba(var(--f2d-frozen-rgb), 0.2), rgba(var(--f2d-frozen-rgb), 0.05) 62%);
+  border-color: rgba(var(--f2d-frozen-rgb), 0.42);
+}
+.f2d-frost { position: absolute; top: 7px; right: 7px; width: 15px; height: 15px; fill: none; stroke: rgb(var(--f2d-frozen-rgb)); stroke-width: 1.5; stroke-linecap: round; opacity: 0.85; }
+.f2d-lora {
+  margin-top: 8px !important; padding: 5px 11px; border-radius: 9px;
+  background: linear-gradient(180deg, rgba(var(--f2d-train-rgb), 0.3), rgba(var(--f2d-train-rgb), 0.12));
+  border: 1px solid rgba(var(--f2d-train-rgb), 0.62);
+  color: var(--f2d-train-ink); font: 600 15px/1.2 var(--font-sans); white-space: nowrap;
+}
+.f2d-head {
+  min-height: 80px; padding: 8px 8px;
+  background: linear-gradient(160deg, rgba(var(--f2d-train-rgb), 0.22), rgba(var(--f2d-train-rgb), 0.06) 66%);
+  border-color: rgba(var(--f2d-train-rgb), 0.58);
+}
+.f2d-fp { font-size: 23px; line-height: 1.15; color: var(--f2d-train-ink); }
+.f2d-fp .f2d-m { font-weight: 600; }
+.f2d-shared { font-size: 14px; line-height: 1.25; color: var(--f2d-ink-2); }
+.f2d-feats { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.f2d-feats i { width: 13px; height: 13px; border-radius: 3.5px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(232, 228, 255, 0.16); }
+.f2d-feats b { font: 700 14px/0.55 var(--font-sans); color: var(--f2d-ink-3); }
+.f2d-featcap { grid-column: 1 / -1; margin: 0; text-align: center; font-size: 14px; color: var(--f2d-ink-3); display: none; }
+
+/* ------------------------------------------------------------------ outputs */
+.f2d-out { grid-area: out; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "loc" "comp" "glob"; row-gap: 16px; min-width: 0; }
+.f2d-loc { grid-area: loc; } .f2d-comp { grid-area: comp; } .f2d-glob { grid-area: glob; }
+.f2d-loc, .f2d-glob { display: flex; flex-direction: column; min-width: 0; }
+.f2d-plot { position: relative; margin-top: 6px; height: 72px; min-height: 0; }
+.f2d-glob .f2d-plot { height: 96px; }
+.f2d-chart { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.f2d-glob .f2d-chart { cursor: ew-resize; touch-action: pan-y; }
+.f2d-loc { container: f2dloc / inline-size; }
+.f2d-xrow {                                    /* the local plot's window: T_k ... T_k+1, and whose window it is */
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "tk name tk1";
+  align-items: baseline; column-gap: 8px;
+  margin-top: 3px; padding: 0 2px 0 20px;
+}
+.f2d-xrow .f2d-m { font-size: 17px; line-height: 1.1; color: var(--f2d-ink-2); }
+.f2d-xrow .f2d-m:first-child { grid-area: tk; }
+.f2d-xrow .f2d-m:last-child { grid-area: tk1; }
+.f2d-name {
+  grid-area: name; justify-self: center; min-width: 0; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 14px/1.3 var(--font-sans); color: var(--f2d-ink-2);
+}
+@container f2dloc (max-width: 380px) {          /* a narrow plot: the ticks on one line, the name under them */
+  .f2d-xrow { grid-template-areas: "tk . tk1" "name name name"; row-gap: 1px; }
+}
+@container f2dloc (max-width: 270px) {
+  .f2d-name { white-space: normal; text-align: center; }
+}
+.f2d-name::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%;
+  background: var(--c); vertical-align: 0.05em;
+}
+.f2d-comp { display: flex; flex-direction: column; justify-content: center; }
+.f2d-eq { margin: 6px 0 0 !important; font: 500 15px/1.3 var(--font-mono); color: var(--f2d-ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.f2d-eq b { font-weight: 600; color: var(--f2d-ink); border-radius: 4px; }
+.f2d-eq-k.is-flash { animation: f2d-kflash 0.8s ease-out; }
+@keyframes f2d-kflash { 0% { background: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 55%, transparent); } 100% { background: transparent; box-shadow: 0 0 0 3px transparent; } }
+.f2d-segs { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 3px; margin-top: 9px; }
+.f2d-segs i { position: relative; height: 11px; border-radius: 3px; overflow: hidden; background: rgba(255, 255, 255, 0.07); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.f2d-segs b { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(var(--f, 0)); background: var(--sc, var(--f2d-s1)); }
+.f2d-segs i:nth-child(1) { --sc: var(--f2d-s1); } .f2d-segs i:nth-child(2) { --sc: var(--f2d-s2); }
+.f2d-segs i:nth-child(3) { --sc: var(--f2d-s3); } .f2d-segs i:nth-child(4) { --sc: var(--f2d-s4); }
+.f2d-segs i:nth-child(5) { --sc: var(--f2d-s5); } .f2d-segs i:nth-child(6) { --sc: var(--f2d-s6); }
+.f2d-segs i:nth-child(7) { --sc: var(--f2d-s7); } .f2d-segs i:nth-child(8) { --sc: var(--f2d-s8); }
+.f2d-segs i:nth-child(9) { --sc: var(--f2d-s9); }
+.f2d-segs i.is-now { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc) 70%, transparent), 0 0 12px -2px var(--sc); }
+.f2d-segs i.is-flash b { animation: f2d-flash 0.7s ease-out; }
+@keyframes f2d-flash { 0% { filter: brightness(2.2); } 100% { filter: none; } }
+
+/* ------------------------------------------------------------------ footer: legend, source, controls */
+.f2d-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px; line-height: 1.35; color: var(--f2d-ink-3);
+}
+.f2d-legend { display: flex; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.f2d-legend li { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.f2d-sw { width: 14px; height: 14px; border-radius: 4px; }
+.f2d-sw--frozen { background: rgba(var(--f2d-frozen-rgb), 0.2); border: 1px solid rgba(var(--f2d-frozen-rgb), 0.7); }
+.f2d-sw--train { background: rgba(var(--f2d-train-rgb), 0.3); border: 1px solid rgba(var(--f2d-train-rgb), 0.8); }
+.f2d-src { display: none; margin: 0; }
+.f2d-ctrl { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.f2d-btn {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; padding: 0; flex: none;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06); color: var(--f2d-ink); cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.f2d-btn:hover { background: rgba(255, 255, 255, 0.14); border-color: rgba(255, 255, 255, 0.42); }
+.f2d-btn:focus-visible, .f2d-rate:focus-visible { outline: 2px solid var(--f2d-ink); outline-offset: 2px; }
+.f2d-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.f2d-play { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.34); }
+.f2d-play .f2d-i-play { display: none; }
+.f2d-play[aria-pressed="true"] .f2d-i-play { display: block; }
+.f2d-play[aria-pressed="true"] .f2d-i-pause { display: none; }
+.f2d-rate {
+  height: 44px; padding: 0 8px; border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.06); color: var(--f2d-ink);
+  font: 500 14px/1 var(--font-mono); cursor: pointer;
+}
+.f2d-rate option { background: var(--f2d-bg); color: var(--f2d-ink); }
+
+/* ------------------------------------------------------------------ narrow (default) */
+.f2d-grid {
+  --f2d-layout: narrow;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 14px auto max(44px, calc(var(--f2d-chip-h, 69px) + 20px)) auto 14px auto 16px auto;   /* the chip's gap: fig2.js sets --f2d-chip-h */
+  grid-template-areas: "ctx" "." "sel" "." "obs" "." "model" "." "out";
+}
+.f2d-node { padding: 8px 12px; }
+.f2d-ctx { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "title sub" "quote quote"; align-items: baseline; column-gap: 8px; row-gap: 2px; }
+.f2d-ctx .f2d-title { grid-area: title; }
+.f2d-ctx .f2d-sub { grid-area: sub; justify-self: end; white-space: nowrap; }
+.f2d-ctx .f2d-quote { grid-area: quote; font-size: 15px; }
+.f2d-model { grid-template-columns: minmax(0, 0.85fr) auto minmax(0, 1.2fr); }
+.f2d-title--model { font-size: 17px; }
+@container f2d (max-width: 311px) {             /* the smallest phones: the context on three short lines */
+  .f2d-ctx { grid-template-columns: minmax(0, 1fr); grid-template-areas: "title" "quote" "sub"; }
+  .f2d-ctx .f2d-sub { justify-self: start; }
+  .f2d-title--model { white-space: normal; }
+  .f2d-ctrl { flex-wrap: wrap; row-gap: 8px; }
+}
+.f2d-in { padding-top: 12px; padding-bottom: 8px; }
+.f2d-out { row-gap: 14px; }
+.f2d-tiles { margin-top: 6px; }
+.f2d-plot { height: 64px; margin-top: 4px; }
+.f2d-glob .f2d-plot { height: 88px; }
+.f2d-foot { margin-top: 12px; padding-top: 8px; }
+.f2d-legend { order: 1; }
+.f2d-src { order: 2; }
+.f2d-ctrl { order: 3; }
+.f2d-ctrl { flex: 1 1 100%; justify-content: space-between; margin-left: 0; }
+
+/* a roomy single column (480-639 px, e.g. tablets in portrait): taller plots, controls beside the legend */
+@container f2d (min-width: 480px) {
+  .f2d-plot { height: 84px; }
+  .f2d-glob .f2d-plot { height: 104px; }
+  .f2d-tiles { gap: 8px; }
+  .f2d-ctrl { flex: none; justify-content: flex-start; margin-left: auto; }
+}
+
+/* ------------------------------------------------------------------ medium */
+@container f2d (min-width: 640px) {
+  .f2d-in { padding: 20px 24px 12px 22px; }
+  .f2d-tiles { margin-top: 10px; }
+  .f2d-plot { margin-top: 6px; }
+  .f2d-grid {
+    --f2d-layout: medium;
+    grid-template-columns: minmax(0, 0.92fr) 40px minmax(0, 1.2fr);
+    grid-template-rows: auto max(56px, calc(var(--f2d-chip-h, 69px) + 22px)) auto 48px auto;
+    grid-template-areas:
+      "ctx . sel"
+      ".   . .  "
+      "obs . model"
+      ".   . .  "
+      "out out out";
+  }
+  .f2d-ctx { display: flex; flex-direction: column; justify-content: center; gap: 3px; }
+  .f2d-ctx .f2d-quote { text-align: left; font-size: 15px; }
+  .f2d-node { padding: 12px 14px; }
+  .f2d-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+  .f2d-tile-l {
+    position: absolute; left: 6px; bottom: 6px; margin: 0; padding: 3px 7px; border-radius: 6px;
+    background: rgba(8, 9, 16, 0.74); color: #fff;
+  }
+  .f2d-long { display: inline; }
+  .f2d-short { display: none; }
+  .f2d-featcap { display: block; }
+  .f2d-vlm, .f2d-head { min-height: 128px; }
+  .f2d-model { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.15fr); }
+  .f2d-title--model { font-size: 18px; }
+  .f2d-out { grid-template-columns: minmax(0, 1fr) 44px minmax(0, 0.62fr); grid-template-areas: "loc . comp" "glob glob glob"; row-gap: 22px; }
+  .f2d-plot { height: 96px; }
+  .f2d-glob .f2d-plot { height: 104px; }
+  .f2d-foot { margin-top: 14px; padding-top: 10px; }
+  .f2d-ctrl { flex: none; justify-content: flex-start; margin-left: auto; }
+  .f2d-comp .f2d-head-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+
+/* ------------------------------------------------------------------ wide: the paper's arrangement */
+@container f2d (min-width: 980px) {
+  .f2d-in { padding: 22px 26px 12px; }
+  .f2d-grid {
+    --f2d-layout: wide;
+    grid-template-columns: minmax(0, 300fr) 40px minmax(0, 302fr) 40px minmax(0, 290fr);
+    grid-template-rows: auto max(96px, calc(var(--f2d-chip-h, 69px) + 24px)) auto;
+    grid-template-areas:
+      "ctx . sel   . out"
+      ".   . .     . out"
+      "obs . model . out";
+  }
+  .f2d-pills { gap: 3px; }
+  .f2d-ctx .f2d-quote { font-size: 16px; }
+  .f2d-out { grid-template-columns: minmax(0, 1fr); grid-template-areas: "glob" "comp" "loc"; grid-template-rows: minmax(0, 1.3fr) auto minmax(0, 1fr); row-gap: 26px; }
+  .f2d-plot { height: auto; flex: 1 1 0; min-height: 96px; }
+  .f2d-glob .f2d-plot { height: auto; min-height: 124px; }
+  .f2d-comp .f2d-head-row { flex-direction: row; align-items: baseline; }
+  .f2d-vlm, .f2d-head { min-height: 150px; }
+  .f2d-src { display: block; margin-left: auto; }
+  .f2d-ctrl { margin-left: 0; }
+}
+
+/* the frame stays put while paused; one-shot cues never run under reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .f2d-pill, .f2d-halo, .f2d-desc, .f2d-btn { transition: none; }
+  .f2d-desc.is-swap span, .f2d-segs i.is-flash b, .f2d-pill.is-pop, .f2d-eq-k.is-flash { animation: none; }
+}
+/* print: the paper's static figure */
+@media print {
+  .f2d-in, .f2d-wires, .f2d-fx { display: none !important; }
+  .f2d-fallback { display: block !important; }
+  .f2d-card { background: #fff !important; box-shadow: none !important; }
+}

@@ -1,0 +1,392 @@
+/* ==========================================================================
+   PRISM draft: MPC examples player (03 · Planning with MPC, #mpc-player)
+   Same parts and classes as the policy player (assets/css/players.css):
+   story tabs, a panel with the video and its transport, a context column.
+   The 16:9 clips carry burned-in captions and tags, so the video takes the
+   full column width and the tabs sit above it (as in the reward-prediction
+   player). Data colours come from the cover film, so the strip matches what
+   the clips show; red only ever means failure.
+   ========================================================================== */
+#mpc-player {
+  container-type: inline-size;
+  --mpc-pick: #76da8c;                    /* chosen / done */
+  --mpc-bad: #e85868;                     /* failure, too risky */
+  --mpc-bad-ink: #ff7886;                 /* failure text on dark */
+  --mpc-plan: #a987ff;                    /* imagining (the film's violet) */
+  --mpc-plan-soft: rgba(169, 135, 255, 0.5);
+  --mpc-plain: rgba(255, 255, 255, 0.34); /* the robot acts */
+}
+.mpc-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "tabs" "panel" "context";   /* the policy parts carry these grid areas */
+  gap: 1.1rem;
+}
+.mpc-panel { min-width: 0; }
+
+/* Tabs: the policy cards, two by two; four across once each fits on one line */
+@container (min-width: 1000px) {
+  .mpc-tabs.policy-tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+}
+@container (min-width: 720px) {
+  /* Wide players: the clip's own title card is legible, so the panel title is
+     kept for screen readers only (the deep-link anchors stay in place). */
+  .mpc-identity.policy-task-identity {
+    position: absolute; width: 1px; height: 1px; margin: 0; padding: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+}
+.mpc-tab { align-content: start; }
+/* Tab and panel meta: the policy player's styles, raised to the page's 13 px floor */
+.mpc-tab .policy-task-count,
+.mpc-tab .policy-task-dur,
+.mpc-identity .policy-task-meta { font-size: 0.8125rem; }
+
+/* --------------------------------------------------------------------------
+   Video
+   -------------------------------------------------------------------------- */
+.mpc-stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: #000;
+  cursor: pointer;
+}
+.mpc-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+/* The clips' own dark background meets the band's: a hairline marks the frame */
+.mpc-stage::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 1;
+  border: 1px solid var(--line);
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Paused: the policy player's play disc */
+.mpc-stage::after {
+  content: "";
+  position: absolute; left: 50%; top: 50%; z-index: 2;
+  width: 64px; height: 64px; margin: -32px 0 0 -32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(8, 10, 14, 0.62) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M8 5.5v13a1 1 0 0 0 1.52.85l10.4-6.5a1 1 0 0 0 0-1.7L9.52 4.65A1 1 0 0 0 8 5.5z'/%3E%3C/svg%3E") 54% 50% / 24px no-repeat;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  opacity: 0; transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.mpc-stage.is-paused::after { opacity: 1; }
+.mpc-stage.is-paused:hover::after { background-color: rgba(8, 10, 14, 0.8); }
+/* Paused on a caption the visitor jumped to: the frame stays clear until hovered */
+.mpc-stage.is-paused.is-browsing::after { opacity: 0; }
+.mpc-stage.is-paused.is-browsing:hover::after { opacity: 1; }
+
+/* --------------------------------------------------------------------------
+   Caption strip (the seek bar) + time
+   -------------------------------------------------------------------------- */
+.mpc-strip-row { display: flex; align-items: center; gap: 0.9rem; margin-top: 0.5rem; }
+.mpc-time { flex: none; padding-top: 0.9rem; }
+.mpc-strip {
+  position: relative;
+  flex: 1 1 auto; min-width: 0;
+  height: 2.75rem;
+  cursor: pointer;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 6px;
+}
+.mpc-strip:focus { outline: none; }
+.mpc-strip:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.mpc-track {
+  position: absolute; left: 0; right: 0; top: 1.55rem;
+  height: 10px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.mpc-seg {
+  position: absolute; top: 0; bottom: 0;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--seg, var(--mpc-plain));
+  opacity: 0.45;
+  transition: opacity var(--t-fast), transform var(--t-fast);
+}
+.mpc-seg.is-past, .mpc-seg.is-now { opacity: 1; }
+.mpc-seg.is-now { transform: scaleY(1.7); }
+.mpc-seg[data-tone="plan"] { --seg: var(--mpc-plan); }
+.mpc-seg[data-kind="mpc"] { --seg: var(--mpc-plan-soft); }
+.mpc-seg[data-tone="bad"] { --seg: var(--mpc-bad); }
+.mpc-seg[data-tone="good"] { --seg: var(--mpc-pick); }
+.mpc-marks { position: absolute; left: 0; right: 0; top: 0; height: 1.35rem; pointer-events: none; }
+.mpc-mark {
+  position: absolute; top: 0;
+  font: 600 0.875rem/1.35rem var(--font-mono);
+  transform: translateX(-1px);
+}
+.mpc-mark[data-tone="bad"] { color: var(--mpc-bad-ink); }
+.mpc-mark[data-tone="good"] { color: var(--mpc-pick); }
+.mpc-head {
+  position: absolute; top: -6px; bottom: -6px; left: 0; z-index: 1;
+  width: 2px; margin-left: -1px;
+  border-radius: 1px;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.55);
+  pointer-events: none;
+}
+.mpc-head::after {
+  content: "";
+  position: absolute; left: 50%; top: 50%;
+  width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(5, 7, 10, 0.85);
+}
+.mpc-tip {
+  position: absolute; bottom: calc(100% + 4px); left: 0; z-index: 3;
+  width: max-content; max-width: min(24rem, 86vw);
+  transform: translateX(-50%);
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: rgba(14, 19, 27, 0.97);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  color: var(--text);
+  font: 500 0.9375rem/1.4 var(--font-sans);
+  pointer-events: none;
+}
+.mpc-tip[hidden] { display: none; }
+.mpc-tip[data-tone="bad"] { color: var(--mpc-bad-ink); }
+.mpc-tip[data-tone="good"] { color: var(--mpc-pick); }
+.mpc-tip-time { margin-right: 0.5rem; font: 500 0.8125rem/1 var(--font-mono); color: var(--muted); }
+
+/* The caption on screen, repeated in large type */
+.mpc-now {
+  margin: 0.15rem 0 0;
+  min-height: 1.75rem;              /* one caption line (the hint has the same height) */
+  font: 500 1.25rem/1.4 var(--font-sans);
+  color: var(--text);
+  text-wrap: balance;
+}
+.mpc-now[data-tone="bad"] { color: var(--mpc-bad-ink); }
+.mpc-now[data-tone="good"] { color: var(--mpc-pick); }
+.mpc-now[data-tone="hint"] { font-size: 1rem; font-weight: 400; line-height: 1.75; color: var(--muted); }
+
+/* --------------------------------------------------------------------------
+   Transport (policy transport; the strip above is the seek bar)
+   -------------------------------------------------------------------------- */
+.mpc-transport { margin-top: 0.7rem; }
+.mpc-transport .mpc-speed { order: 0; margin-left: auto; }
+.mpc-transport .mpc-fs { order: 0; padding-inline: 0.7rem; }
+.mpc-step { gap: 0.35rem; padding-inline: 0.75rem; }
+.mpc-step .btn-ico, .mpc-fs .btn-ico { width: 1.1em; height: 1.1em; }
+
+/* --------------------------------------------------------------------------
+   Context: policy alone vs with MPC, the note, the legend
+   -------------------------------------------------------------------------- */
+.mpc-context { gap: 0.9rem; }
+.mpc-compare { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.9rem 2.5rem; }
+@container (min-width: 720px) {
+  .mpc-compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.mpc-compare-item { display: grid; gap: 0.3rem; align-content: start; }
+.mpc-compare dt { display: flex; align-items: baseline; gap: 0.5rem; font: 600 1rem/1.4 var(--font-sans); color: var(--text); }
+.mpc-compare dt::before { flex: none; width: 1em; font-family: var(--font-mono); text-align: center; }
+.mpc-compare [data-tone="bad"] dt::before { content: "✕"; color: var(--mpc-bad-ink); }
+.mpc-compare [data-tone="good"] dt::before { content: "✓"; color: var(--mpc-pick); }
+.mpc-compare [data-tone="plan"] dt::before { content: "●"; color: var(--mpc-plan); }
+.mpc-compare [data-tone="pick"] dt::before { content: "●"; color: var(--mpc-pick); }
+.mpc-compare dd { margin: 0; padding-left: 1.5em; font-size: 1rem; line-height: 1.6; color: var(--muted); }
+.mpc-context .mpc-note { font-size: 0.9rem; }
+
+.mpc-legend { border-top: 0; }
+.mpc-legend:last-of-type { border-bottom: 0; }
+.mpc-legend > summary { padding: 0.35rem 0.1rem; font-size: 0.95rem; color: var(--text); }
+.mpc-legend .disclosure-body { padding-bottom: 0.4rem; }
+.mpc-legend-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.1rem; }
+.mpc-legend-list > div { display: contents; }
+.mpc-legend-list dd + dt { margin-top: 0.45rem; }
+@container (min-width: 560px) {
+  .mpc-legend-list { grid-template-columns: max-content minmax(0, 1fr); gap: 0.45rem 1.5rem; }
+  .mpc-legend-list dd + dt { margin-top: 0; }
+}
+.mpc-legend-list dt { font: 600 0.875rem/1.6 var(--font-mono); color: var(--text); }
+.mpc-legend-list [data-tone="bad"] dt { color: var(--mpc-bad-ink); }
+.mpc-legend-list [data-tone="good"] dt { color: var(--mpc-pick); text-transform: uppercase; letter-spacing: 0.04em; }
+.mpc-legend-list dd { margin: 0; font-size: 0.95rem; line-height: 1.6; color: var(--muted); }
+.mpc-context .mpc-legend-strip { margin-top: 0.8rem; font-size: 0.95rem; line-height: 1.6; color: var(--muted); }
+.mpc-key { white-space: nowrap; color: var(--text); }
+.mpc-key::before {
+  content: ""; display: inline-block;
+  width: 0.9em; height: 0.5em; margin-right: 0.35em;
+  border-radius: 2px; vertical-align: 0.12em;
+  background: var(--mpc-plain);
+}
+.mpc-key[data-tone="plan"]::before { background: var(--mpc-plan); }
+.mpc-key[data-tone="good"]::before { background: var(--mpc-pick); }
+.mpc-key[data-tone="bad"]::before { background: var(--mpc-bad); }
+
+/* --------------------------------------------------------------------------
+   Narrow players (phones)
+   -------------------------------------------------------------------------- */
+@container (max-width: 559px) {
+  .mpc-now { min-height: 3.35rem; font-size: 1.1875rem; }   /* two caption lines */
+  .mpc-step-label { display: none; }
+  .mpc-step { padding-inline: 0.65rem; }
+  .mpc-strip-row { gap: 0.6rem; }
+}
+@media (max-width: 640px) {
+  .mpc-stage::after { width: 48px; height: 48px; margin: -24px 0 0 -24px; background-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mpc-stage::after, .mpc-seg { transition: none; }
+}
+@media print {
+  .mpc-strip-row, .mpc-legend { display: none !important; }
+}
+
+/* ---------- Gallery: one before/after card per story (the full story opens in a dialog) ---------- */
+.mpc-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin: 0.5rem 0 0; }
+.mpc-gcard {
+  display: flex; flex-direction: column; gap: 0.75rem; padding: 0.9rem; border-radius: 16px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+.mpc-gcard:hover { border-color: rgba(255, 255, 255, 0.28); transform: translateY(-2px); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45); }
+.mpc-gcard:focus-within { border-color: rgba(118, 218, 140, 0.6); }
+.mpc-gcard-title { margin: 0.1rem 0.15rem 0; font: 600 1.125rem/1.3 Inter, system-ui, sans-serif; color: #f2f4f7; letter-spacing: -0.005em; }
+.mpc-pair { display: grid; gap: 0.7rem; }
+.mpc-half { margin: 0; display: grid; gap: 0.4rem; }
+.mpc-half-media {
+  position: relative; aspect-ratio: 4 / 3; border-radius: 11px; overflow: hidden; background: #000;
+  box-shadow: inset 0 0 0 2px var(--mpc-half-ring, rgba(255, 255, 255, 0.15));
+}
+.mpc-half[data-tone="bad"] { --mpc-half-ring: rgba(232, 88, 104, 0.75); --mpc-half-ink: #ff8a96; }
+.mpc-half[data-tone="good"] { --mpc-half-ring: rgba(118, 218, 140, 0.75); --mpc-half-ink: #8fe6a3; }
+.mpc-half-media video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.mpc-half-media::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--mpc-half-ring); pointer-events: none; }
+.mpc-half-tag, .mpc-half-speed {
+  position: absolute; top: 0.5rem; padding: 0.22rem 0.5rem; border-radius: 7px; pointer-events: none;
+  font: 600 0.8125rem/1.2 "IBM Plex Mono", ui-monospace, monospace; letter-spacing: 0.02em;
+  background: rgba(8, 10, 14, 0.78); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.mpc-half-tag { left: 0.5rem; color: var(--mpc-half-ink); }
+.mpc-half-speed { right: 0.5rem; color: rgba(255, 255, 255, 0.82); }
+.mpc-half figcaption { margin: 0 0.15rem; min-height: 2.8em; font: 400 0.9375rem/1.4 Inter, system-ui, sans-serif; color: rgba(236, 239, 244, 0.82); }   /* 2 lines: the halves line up across cards */
+.mpc-half[data-tone="bad"] figcaption::before { content: "✕ "; color: var(--mpc-half-ink); }
+.mpc-half[data-tone="good"] figcaption::before { content: "✓ "; color: var(--mpc-half-ink); }
+.mpc-open {
+  margin-top: auto; display: flex; align-items: center; gap: 0.55rem; width: 100%; min-height: 44px; padding: 0.55rem 0.85rem;
+  border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.05); color: #f2f4f7;
+  font: 600 0.9375rem/1.2 Inter, system-ui, sans-serif; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease;
+}
+.mpc-open:hover, .mpc-gcard:hover .mpc-open { background: rgba(118, 218, 140, 0.14); border-color: rgba(118, 218, 140, 0.55); }
+.mpc-open:focus-visible { outline: 2px solid #76da8c; outline-offset: 2px; }
+.mpc-open-ico { color: #76da8c; font-size: 0.8rem; }
+.mpc-open-dur { margin-left: auto; font: 500 0.8125rem/1 "IBM Plex Mono", ui-monospace, monospace; color: rgba(255, 255, 255, 0.6); }
+@media (max-width: 900px) {
+  .mpc-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 0.9rem; padding-bottom: 0.6rem; overscroll-behavior-x: contain; }
+  .mpc-gcard { flex: 0 0 min(78vw, 360px); scroll-snap-align: start; }
+  .mpc-gcard:hover { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .mpc-gcard, .mpc-open { transition: none; } .mpc-gcard:hover { transform: none; } }
+
+/* ---------- The story dialog (the full player) ---------- */
+.mpc-dialog {
+  width: min(1180px, 96vw); max-width: none; max-height: 94vh; padding: 0; overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 18px; background: #06080b; color: #e8eaee;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+}
+.mpc-dialog::backdrop { background: rgba(3, 4, 6, 0.78); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.mpc-dialog-body { position: relative; max-height: 94vh; overflow: auto; padding: 1.1rem 1.1rem 1.2rem; overscroll-behavior: contain; }
+.mpc-dialog .mpc-card { margin: 0; }
+/* The tabs, timeline, caption and controls (~250 px) stay in view on short windows: the video gives way (letterboxed) */
+.mpc-dialog .mpc-stage { max-height: max(220px, calc(94vh - 256px)); margin-inline: auto; }   /* (mpc-player.js measures the exact cap) */
+.mpc-close {
+  position: sticky; top: 0; float: right; z-index: 3; width: 44px; height: 44px; margin: -0.3rem -0.3rem 0 0.5rem; display: grid; place-items: center;
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(10, 12, 16, 0.85); color: #f2f4f7; cursor: pointer;
+}
+.mpc-close .btn-ico { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.mpc-close:hover { border-color: rgba(255, 255, 255, 0.4); }
+.mpc-close:focus-visible { outline: 2px solid #76da8c; outline-offset: 2px; }
+html.mpc-dialog-open { overflow: hidden; }
+@media (max-width: 640px) { .mpc-dialog { width: 100vw; max-height: 100vh; height: 100vh; border-radius: 0; } .mpc-dialog-body { max-height: 100vh; padding: 0.75rem; } }
+
+/* ---------- Card motion: the relay (policy alone -> with MPC), the entrance, the pointer light ---------- */
+.mpc-gcard { position: relative; isolation: isolate; }
+.mpc-gcard::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none; opacity: 0;
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 0%), rgba(118, 218, 140, 0.11), transparent 45%);
+  transition: opacity 0.25s ease;
+}
+.mpc-gcard:hover::before { opacity: 1; }
+@keyframes mpc-rise { from { opacity: 0; transform: translateY(28px) scale(0.98); } to { opacity: 1; transform: none; } }
+.mpc-gallery.js-anim .mpc-gcard { opacity: 0; }
+.mpc-gallery.js-anim .mpc-gcard.is-in { opacity: 1; animation: mpc-rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards; animation-delay: calc(var(--i, 0) * 130ms); }
+.mpc-half-media video { transition: filter 0.5s ease; }
+.mpc-half-media { transition: box-shadow 0.5s ease; }
+.mpc-half figcaption { transition: opacity 0.5s ease; }
+/* while one half plays, the other waits dimmed; the playing half glows in its colour */
+.mpc-gcard.is-relay[data-phase="alone"] .mpc-half[data-tone="good"] video,
+.mpc-gcard.is-relay[data-phase="mpc"] .mpc-half[data-tone="bad"] video { filter: grayscale(0.7) brightness(0.5); }
+.mpc-gcard.is-relay[data-phase="alone"] .mpc-half[data-tone="good"] figcaption,
+.mpc-gcard.is-relay[data-phase="mpc"] .mpc-half[data-tone="bad"] figcaption { opacity: 0.7; }
+.mpc-gcard.is-relay[data-phase="alone"] .mpc-half[data-tone="bad"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(232, 88, 104, 0.95), 0 0 26px rgba(232, 88, 104, 0.3); }
+.mpc-gcard.is-relay[data-phase="mpc"] .mpc-half[data-tone="good"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(118, 218, 140, 0.95), 0 0 30px rgba(118, 218, 140, 0.34); }
+@media (prefers-reduced-motion: reduce) {
+  .mpc-gallery.js-anim .mpc-gcard { opacity: 1; animation: none; }
+  .mpc-half-media video, .mpc-half-media, .mpc-half figcaption, .mpc-gcard::before { transition: none; }
+}
+
+/* ---------- Three beats: the policy alone fails -> PRISM judges the imagined futures -> the fix (with PRISM) ---------- */
+/* (replaces the two-beat rules above: data-phase is now alone | judge | fix) */
+.mpc-gcard.is-relay[data-phase="judge"] .mpc-half[data-tone="bad"] video,
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-half[data-tone="bad"] video { filter: none; }
+.mpc-gcard.is-relay:not([data-phase="fix"]) .mpc-half[data-tone="good"] > .mpc-half-media > video { filter: grayscale(0.7) brightness(0.5); }
+.mpc-gcard.is-relay:not([data-phase="fix"]) .mpc-half[data-tone="good"] figcaption { opacity: 0.7; }
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-half[data-tone="bad"] figcaption { opacity: 0.7; }
+.mpc-gcard.is-relay[data-phase="judge"] .mpc-half[data-tone="bad"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(169, 135, 255, 0.95), 0 0 30px rgba(169, 135, 255, 0.4); }
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-half[data-tone="good"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(118, 218, 140, 0.95), 0 0 30px rgba(118, 218, 140, 0.34); }
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-half[data-tone="bad"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(169, 135, 255, 0.55); }
+
+.mpc-judge {
+  position: absolute; inset: 0; z-index: 2; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 0.3rem;
+  padding: 0.45rem 0.5rem 0.45rem; border-radius: inherit;
+  background: radial-gradient(120% 90% at 50% 0%, rgba(70, 48, 140, 0.6), rgba(8, 8, 18, 0.97) 72%);
+  opacity: 0; visibility: hidden; transform: translateY(10px);
+  transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 0.4s;
+}
+.mpc-gcard.is-relay[data-phase="judge"] .mpc-judge,
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-judge { opacity: 1; visibility: visible; transform: none; transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-judge { opacity: 0.9; }
+.mpc-judge-head { display: flex; align-items: center; gap: 0.4rem; font: 600 0.8125rem/1.2 "IBM Plex Mono", ui-monospace, monospace; color: #d3c7ff; letter-spacing: 0.02em; }
+.mpc-judge-gem { color: #a987ff; text-shadow: 0 0 10px rgba(169, 135, 255, 0.8); }
+.mpc-judge-stage { position: relative; height: 100%; aspect-ratio: 644 / 452; justify-self: center; border-radius: 6px; overflow: hidden; background: #000; }
+.mpc-judge-stage video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mpc-judge-grid { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; column-gap: 0.62%; row-gap: 0.885%; }
+.mpc-judge-cell { position: relative; border-radius: 3px; opacity: 0; transition: opacity 0.25s ease, box-shadow 0.25s ease; }
+.mpc-judge-cell[data-tone="bad"] { --c: rgba(232, 88, 104, 0.95); --ink: #ff8a96; }
+.mpc-judge-cell[data-tone="good"] { --c: rgba(118, 218, 140, 0.95); --ink: #8fe6a3; }
+.mpc-judge.is-judging .mpc-judge-cell { opacity: 1; box-shadow: inset 0 0 0 2px var(--c); transition-delay: calc(0.8s + var(--k) * 0.2s); }
+.mpc-judge.is-judging .mpc-judge-cell[data-tone="good"] { box-shadow: inset 0 0 0 3px var(--c), 0 0 16px rgba(118, 218, 140, 0.55); }
+.mpc-judge-cell[data-tone="bad"]::before { content: ""; position: absolute; inset: 0; background: rgba(36, 4, 10, 0.5); }
+.mpc-judge-stamp {
+  position: absolute; left: 4px; bottom: 4px; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.06rem 0.34rem;
+  border-radius: 5px; background: rgba(6, 8, 12, 0.86); color: var(--ink); white-space: nowrap;
+  font: 600 0.8125rem/1.3 "IBM Plex Mono", ui-monospace, monospace;
+}
+.mpc-judge-scan {
+  position: absolute; left: 0; right: 0; top: -32%; height: 32%; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: linear-gradient(180deg, transparent, rgba(169, 135, 255, 0.35) 60%, rgba(214, 200, 255, 0.85) 64%, transparent 68%);
+}
+.mpc-judge.is-judging .mpc-judge-scan { animation: mpc-scan 1.05s cubic-bezier(0.45, 0, 0.25, 1) 0.2s 1 both; }
+@keyframes mpc-scan { 0% { top: -32%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+.mpc-judge-foot { font: 600 0.8125rem/1.2 "IBM Plex Mono", ui-monospace, monospace; opacity: 0; transition: opacity 0.3s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mpc-judge-foot[data-tone="good"] { color: #8fe6a3; }
+.mpc-judge-foot[data-tone="bad"] { color: #ff8a96; }
+.mpc-judge.is-judging .mpc-judge-foot { opacity: 1; transition-delay: 1.8s; }
+@media (prefers-reduced-motion: reduce) { .mpc-judge { display: none; } }
+/* the policy-alone tag and speed pill step aside while PRISM's panel covers that half */
+.mpc-half-tag, .mpc-half-speed { transition: opacity 0.25s ease; }
+.mpc-gcard.is-relay:not([data-phase="alone"]) .mpc-half[data-tone="bad"] .mpc-half-tag,
+.mpc-gcard.is-relay:not([data-phase="alone"]) .mpc-half[data-tone="bad"] .mpc-half-speed { opacity: 0; }
+@media (max-width: 900px) { .mpc-judge-im { display: none; } }
