@@ -148,6 +148,14 @@ html:not(.f2d-js) .f2d-link, html:not(.f2d-js) .f2d-cap-live { display: none; } 
 
 /* ------------------------------------------------------------------ selector */
 .f2d-sel { grid-area: sel; display: flex; flex-direction: column; justify-content: center; }
+.f2d-sel .f2d-selector-default {
+  align-self: flex-start; margin-top: 8px; padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08); color: var(--f2d-ink-2);
+  font-size: 14px; line-height: 1.4;
+}
+.f2d-selector-default strong { color: var(--f2d-ink); font-weight: 600; }
+.f2d-sel .f2d-selector-note { margin-top: 8px; font-size: 14px; line-height: 1.4; color: var(--f2d-ink-3); }
 .f2d-count { font: 500 14px/1 var(--font-mono); color: var(--f2d-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .f2d-count b { font-weight: 600; color: var(--f2d-ink); }
 .f2d-pills-wrap { position: relative; margin-top: 10px; }

@@ -43,10 +43,10 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css" crossorigin="anonymous" /></noscript>
-    <link rel="stylesheet" href="assets/css/site.css?v=3178422903" />
+    <link rel="stylesheet" href="assets/css/site.css?v=1054725454" />
     <link rel="stylesheet" href="assets/css/content.css?v=3405373506" />
     <link rel="stylesheet" href="assets/css/players.css?v=2437433237" />
-    <script defer src="assets/js/site.js?v=48775859"></script>
+    <script defer src="assets/js/site.js?v=839783732"></script>
     <script defer src="assets/js/data/tasks.js?v=2738016340"></script>
     <script defer src="assets/draft/js/tasks-draft.js?v=t2"></script><!-- DRAFT: drops the long-instruction tasks from the gallery (before app.js renders it) -->
     <script defer src="assets/js/data/predictions.js?v=238110375"></script>
@@ -59,15 +59,15 @@
     <!-- DRAFT (step 2): animated Fig. 2 and the MPC examples -->
     <link rel="stylesheet" href="assets/draft/css/fig2.css?v=f2d5" />
     <link rel="stylesheet" href="assets/draft/css/mpc.css?v=s4" />
-    <link rel="stylesheet" href="assets/draft/css/posttrain.css?v=p5" />
+    <link rel="stylesheet" href="assets/draft/css/posttrain.css?v=1990212090" />
     <link rel="stylesheet" href="assets/draft/css/charts.css?v=c9" />
     <script defer src="assets/draft/js/fig2-data.js?v=f2d1"></script>
     <script defer src="assets/draft/js/fig2.js?v=f2d5"></script>
     <script defer src="assets/draft/js/mpc-data.js?v=s2"></script>
-    <script defer src="assets/draft/js/mpc-player.js?v=s3"></script>
-    <script defer src="assets/draft/js/posttrain-section.js?v=p6"></script>
+    <script defer src="assets/draft/js/mpc-player.js?v=76330556"></script>
+    <script defer src="assets/draft/js/posttrain-section.js?v=3078243316"></script>
     <script defer src="assets/draft/js/charts.js?v=c6"></script>
-    <script defer src="assets/draft/js/topic-accordion.js?v=a1"></script>
+    <script defer src="assets/draft/js/topic-accordion.js?v=852957152"></script>
   </head>
   <body>
     <a class="skip-link" href="#overview">Skip to content</a>
@@ -105,6 +105,20 @@
       </div>
     </nav>
 
+    <nav class="project-resources" aria-label="Project resources">
+      <div class="project-resources-inner">
+        <a class="project-wordmark" href="#overview">PRISM<span>Reward modeling for long-horizon manipulation</span></a>
+        <div class="project-resource-actions">
+          <a class="btn btn--sm" href="assets/paper/reward_PRISM_arxiv_v1.pdf" aria-label="Main paper (PDF)">
+            <svg class="btn-ico" aria-hidden="true"><use href="#i-doc" /></svg>Paper
+          </a>
+          <button class="btn btn--sm" type="button" data-expand="assets/video/prism-overview-release-clean-1080.mp4" data-expand-poster="assets/video/prism-overview-release-clean.jpg" aria-label="Play the overview video full screen, with sound">
+            <svg class="btn-ico" aria-hidden="true"><use href="#i-play" /></svg>Video
+          </button>
+        </div>
+      </div>
+    </nav>
+
     <header class="hero" id="top" data-hero data-band="dark" aria-label="PRISM cover film">
       <video class="hero-media" muted loop playsinline preload="none" poster="assets/draft/video/cover_chain_first.jpg" data-still-poster="assets/draft/video/cover_chain_poster.jpg?v=c3" aria-hidden="true" tabindex="-1">
         <!-- site.js attaches the source when playback is wanted. Reduced motion
@@ -132,6 +146,7 @@
       <section class="section section-overview" id="overview" aria-labelledby="page-title">
         <div class="container container--intro intro">
           <h1 class="page-title" id="page-title"><span id="hero-title"></span>PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision</h1>
+          <p class="project-summary">PRISM composes subtask progress into a reward signal for long manipulation tasks. Structured supervision captures failures and recovery, helping the model evaluate and improve robot behavior.</p>
           <div class="page-authors">
             <ol class="author-list" aria-label="Authors in manuscript order">
               <li><span class="author-name">Zi-ang Cao</span><sup>1,2,*</sup></li>
@@ -175,7 +190,6 @@
           </div>
 
           <div class="abstract">
-            <p class="supplement-intro">Explore PRISM through videos, results, and implementation details.</p>
             <nav class="explore-links hero-links" aria-label="Explore PRISM">
               <a href="#predictions">Reward accuracy <span aria-hidden="true">→</span></a>
               <a href="#policy">Post-training <span aria-hidden="true">→</span></a>
@@ -310,7 +324,7 @@
               <img class="f2d-fallback" src="assets/img/fig2-method-2500.webp" width="2500" height="888" alt="Figure 2: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." loading="lazy" decoding="async" />
             </div>
             <p class="sr-only" id="f2d-desc">Task context (assemble an airplane model, with its nine subtask descriptions) and four camera views go into a frozen vision–language model with trainable LoRA. The subtask selector picks the unfinished subtask and passes its description to the model. A trainable progress head, shared across subtasks, predicts that subtask’s local progress from 0 to 1. Composition adds one share of credit for every completed subtask: global progress equals k plus local progress, divided by K. The animation replays the outputs of PRISM, adapted to airplane assembly, on one selected held-out episode at six times speed, with light smoothing; this episode is not in the paper. PRISM moves through all nine subtasks, its local progress restarts at each new subtask, and global progress climbs to 0.99 without losing the credit of completed subtasks.</p>
-            <figcaption><b>Fig. 2 · From local to global task progress.</b> A shared vision–language model selects the unfinished subtask and estimates its progress from the selected description; composition adds credit for completed subtasks. <span class="f2d-cap-live">Replay at 6×: PRISM, adapted to airplane assembly, on one selected held-out episode (<i>K</i>&nbsp;=&nbsp;9); scores lightly smoothed; not in the paper.</span> <button class="f2d-link" type="button" data-expand="assets/img/fig2-method-2500.webp" aria-label="View the static figure">View the static figure</button></figcaption>
+            <figcaption><b>Fig. 2 · From local to global task progress.</b> A shared vision–language model selects the unfinished subtask and estimates its progress from the selected description; composition adds credit for completed subtasks. <span class="f2d-cap-live">Replay at 6×: PRISM, adapted to airplane assembly, on one selected held-out episode (<i>K</i>&nbsp;=&nbsp;9); scores lightly smoothed; not in the paper.</span> <button class="f2d-link" type="button" data-expand="assets/img/fig2-method-2500.webp" data-expand-alt="Figure 2: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." aria-label="View the static figure">View the static figure</button></figcaption>
           </figure>
           <p class="predictor-invariant callout callout--inline f2-invariant"><strong>Same everywhere</strong><span>One architecture and one language interface for pretraining, adaptation and inference.</span></p>
         </div>

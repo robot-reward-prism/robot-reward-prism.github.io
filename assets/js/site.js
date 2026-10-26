@@ -442,7 +442,7 @@
       if (IMAGE_RE.test(url)) {
         var source = t.querySelector("img");
         image.src = url;
-        image.alt = source ? source.getAttribute("alt") || "" : "";
+        image.alt = t.getAttribute("data-expand-alt") || (source ? source.getAttribute("alt") || "" : "");
         modal.setAttribute("aria-label", "Enlarged figure");
         modal.classList.add("is-image");
         show();

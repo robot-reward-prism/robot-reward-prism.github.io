@@ -42,7 +42,7 @@
   });
   const svgNS = "http://www.w3.org/2000/svg";
   let frame = 0, geometry, cursor, dot, reveal, activeWindow, activeAnnotation, lastPhase = "";
-  let operation = 0, videoFrameCallback = 0, animation = 0;
+  let operation = 0, animation = 0;
   const clampFrame = (value) => Math.max(0, Math.min(lastFrame, Math.round(Number(value) || 0)));
   const format = (seconds) => `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(1).padStart(4, "0")}`;
   function svgElement(tag, attributes, content) {
@@ -171,17 +171,12 @@
     showFrame(target);
   }
   function updateFromClock() { showFrame(video.ended ? lastFrame : Math.floor(video.currentTime * data.fps + .0001)); }
-  function watchVideoFrames() {
-    if (!video.requestVideoFrameCallback) return;
-    videoFrameCallback = video.requestVideoFrameCallback((_, metadata) => {
-      /* A callback for the second-to-last frame can arrive after "ended" has
-         shown the last one: never step back from the end state. */
-      showFrame(video.ended ? lastFrame : Math.floor(metadata.mediaTime * data.fps + .0001));
-      watchVideoFrames();
-    });
-  }
   function watchAnimation() {
-    if (video.requestVideoFrameCallback || video.paused) return;
+    cancelAnimationFrame(animation);
+    if (video.paused || video.ended) return;
+    /* Video-frame callbacks can be throttled in embedded previews while the
+       media clock keeps advancing. Use one clock for the curve and seek bar;
+       currentTime also stops naturally during buffering, and follows seeks. */
     updateFromClock(); animation = requestAnimationFrame(watchAnimation);
   }
   play.addEventListener("click", () => video.paused ? start() : pause());
@@ -190,10 +185,10 @@
   segmentButtons.forEach((button) => button.addEventListener("click", () => seekTo(segments[button.dataset.supervisionSegment].seek)));
   video.addEventListener("ratechange", fixPlaybackRate);
   video.addEventListener("play", () => { setPlaying(true); watchAnimation(); });
-  video.addEventListener("pause", () => { setPlaying(false); cancelAnimationFrame(animation); });
+  video.addEventListener("pause", () => { setPlaying(false); cancelAnimationFrame(animation); updateFromClock(); });
   video.addEventListener("ended", () => { pause(); showFrame(lastFrame); });
   video.addEventListener("seeked", updateFromClock);
-  video.addEventListener("timeupdate", () => { if (!video.requestVideoFrameCallback) updateFromClock(); });
+  video.addEventListener("timeupdate", updateFromClock);
   video.addEventListener("loadedmetadata", () => {
     fixPlaybackRate();
     if (Math.abs(video.duration - duration) > 1 / data.fps) setError("Video duration does not match the annotated time range.");
@@ -208,9 +203,8 @@
   new ResizeObserver(draw).observe(chart);
   window.addEventListener("pagehide", () => {
     pause(); cancelAnimationFrame(animation);
-    if (videoFrameCallback) video.cancelVideoFrameCallback(videoFrameCallback);
   });
   video.muted = true;
   fixPlaybackRate();
-  draw(); watchVideoFrames();
+  draw();
 })();

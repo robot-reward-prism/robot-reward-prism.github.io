@@ -78,9 +78,12 @@
 .pc-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .pc-stat { padding: 1.1rem 1.2rem; border-radius: 14px; background: var(--pc-track); }
 .pc-stat-big { margin: 0; display: flex; align-items: flex-end; gap: 1.4rem; flex-wrap: wrap; }
+.pc-stat-big--cost { column-gap: 0.75rem; }
 .pc-stat-big small { display: block; margin-bottom: 0.35rem; font: 600 0.8125rem/1 var(--font-sans, Inter, sans-serif); color: var(--pc-muted); }
 .pc-stat-ours strong { font: 700 clamp(2rem, 3.4vw, 2.6rem)/1 var(--font-sans, Inter, sans-serif); color: var(--pc-ours-text); letter-spacing: -0.03em; }
 .pc-stat-ours small { color: var(--pc-ours-text); }
+.pc-stat-inline { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.4rem 0.6rem; }
+.pc-stat-vram { font: 600 0.8125rem/1.4 var(--font-sans, Inter, sans-serif); color: var(--pc-ours-text); white-space: nowrap; }
 .pc-stat-other strong { font: 500 1.5rem/1 var(--font-sans, Inter, sans-serif); color: var(--pc-muted); }
 .pc-stat-what { margin: 0.7rem 0 0; font: 400 0.9rem/1.45 var(--font-sans, Inter, sans-serif); color: var(--pc-muted); }
 

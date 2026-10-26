@@ -37,36 +37,46 @@
     for (const c of kids) if (c != null) n.append(c);
     return n;
   }
-  const start = (v) => { if (!v.getAttribute("src") && v.dataset.src) v.src = v.dataset.src; const p = v.play(); if (p && p.catch) p.catch(() => {}); };
+  const filmState = { choice: null, blocked: false };
+  const cardsState = { choice: null, blocked: false };
+  const playback = [];
+  const enabled = (state) => state.choice !== "pause" && !state.blocked && (!reduceMQ.matches || state.choice === "play");
 
   /* ---------- the film ---------- */
   const small = window.matchMedia && window.matchMedia("(max-width: 900px), (max-height: 500px)").matches;
   const film = el("video", { class: "pt-film-video", muted: true, loop: true, playsinline: true, preload: "none",
-    poster: abs("assets/draft/video/posttrain_poster.jpg"), "data-src": abs(`assets/draft/video/posttrain_${small ? 720 : 1080}.mp4?v=p1`),
+    poster: abs("assets/draft/video/posttrain_poster.jpg"), "data-pt-src": abs(`assets/draft/video/posttrain_${small ? 720 : 1080}.mp4?v=p1`),
     "aria-label": "Film: how PRISM's progress trains the policy, then the results (33 seconds, no sound)" });
   film.muted = true;
-  const full = el("button", { class: "pt-film-full", type: "button", "aria-label": "Watch the film full screen" },
-    el("span", { "aria-hidden": "true", text: "⛶" }), el("span", { text: "Full screen" }));
+  film.id = "pt-film-video";
+  const filmToggle = el("button", { class: "pt-playback pt-film-toggle", type: "button", "aria-controls": film.id });
+  const full = el("button", { class: "pt-playback pt-film-full", type: "button", "aria-label": "Full screen & control timeline to find specific frames" },
+    el("span", { text: "Full screen & control timeline" }));
   full.addEventListener("click", () => {
-    start(film);
+    filmState.choice = "play";
+    filmState.blocked = false;
+    sync();
     const f = film.requestFullscreen || film.webkitRequestFullscreen || film.webkitEnterFullscreen;
     if (f) { try { const r = f.call(film); if (r && r.catch) r.catch(() => {}); } catch (_) { /* ignore */ } }
   });
   const filmFig = el("figure", { class: "pt-film" },
-    el("div", { class: "pt-film-media" }, film, full),
+    el("div", { class: "pt-film-media" }, film),
+    el("div", { class: "pt-film-controls" }, filmToggle, full),
     el("figcaption", { class: "pt-film-cap" },
       el("strong", { text: "How it works, then the results." }),
       el("span", { text: " A real rollout: PRISM's progress drops when the wing slips; the change in progress becomes the reward or the weight." }),
       el("span", { class: "pt-film-dur", text: "0:33 · no sound" })));
-  if (reduceMQ.matches) film.removeAttribute("loop");
+  playback.push({ video: film, state: filmState, inView: false, pending: false });
 
   /* ---------- the cards ---------- */
-  const gallery = el("div", { class: "pt-gallery", role: "list", "aria-label": "Post-training results by task" });
-  const cardVideos = [];
+  const gallery = el("div", { id: "pt-gallery", class: "pt-gallery", role: "list", "aria-label": "Post-training results by task" });
+  const cardsToggle = el("button", { class: "pt-playback pt-cards-toggle", type: "button", "aria-controls": gallery.id });
+  const galleryControls = el("div", { class: "pt-gallery-controls" }, cardsToggle);
   TASKS.forEach((t, i) => {
     const v = el("video", { muted: true, loop: true, playsinline: true, preload: "none", "aria-hidden": "true", disablepictureinpicture: true,
-      poster: abs(`assets/draft/video/cards/pt_${t.id}.jpg`), "data-src": abs(`assets/draft/video/cards/pt_${t.id}.mp4`) });
-    v.muted = true; cardVideos.push(v);
+      poster: abs(`assets/draft/video/cards/pt_${t.id}.jpg`), "data-pt-src": abs(`assets/draft/video/cards/pt_${t.id}.mp4`) });
+    v.muted = true;
+    playback.push({ video: v, state: cardsState, inView: false, pending: false });
     const fmt = (x) => `${x.toFixed(t.dec)} %`;
     const rows = t.bars.map(([name, val, frac], r) => el("div", { class: `pt-row${r === 0 ? " is-prism" : ""}` },
       el("span", { class: "pt-name", text: name }),
@@ -85,7 +95,7 @@
     card.addEventListener("click", (e) => { if (!e.target.closest(".pt-open")) return; openTask(t, open); });
     gallery.append(card);
   });
-  host.append(filmFig, gallery);
+  host.append(filmFig, galleryControls, gallery);
 
   /* ---------- the four-camera player in a dialog ---------- */
   const dialog = el("dialog", { class: "pt-dialog", "aria-label": "Four synchronized camera views" });
@@ -96,49 +106,144 @@
   if (player) body.append(player);                      // (policy.js has already built it; moving keeps its listeners)
   host.append(dialog);                                  // (inside the dark band: the player keeps its dark colours)
   let opener = null;
-  function openTask(t, from) {
-    opener = from || null;
-    film.pause(); cardVideos.forEach((v) => v.pause());
-    if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+  function openTask(t, from, updateHash = true) {
+    if (!t) return;
+    if (from) opener = from;
+    else if (!dialog.open) opener = document.activeElement;
+    if (!dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+    }
     document.documentElement.classList.add("mpc-dialog-open");
     const tab = document.getElementById(`policy-tab-${t.id}`);
-    if (tab) tab.click();
-    close.focus();
+    if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+    if (updateHash && location.hash !== `#policy-${t.id}`) history.replaceState(history.state, "", `#policy-${t.id}`);
+    sync();
+    close.focus({ preventScroll: true });
   }
   function shut() { if (dialog.open) dialog.close(); }
   close.addEventListener("click", shut);
   dialog.addEventListener("click", (e) => { if (e.target === dialog) shut(); });
   dialog.addEventListener("close", () => {
     document.documentElement.classList.remove("mpc-dialog-open");
-    const pv = player && player.querySelectorAll("video");
-    if (pv) pv.forEach((v) => { if (!v.paused) v.pause(); });
-    if (opener && document.contains(opener)) opener.focus();
+    const policy = window.PRISM && window.PRISM.policy;
+    if (policy) policy.pause();
+    else if (player) player.querySelectorAll("video").forEach((v) => v.pause());
+    if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
     sync();
   });
 
-  /* ---------- play only what is in view; the bars fill once ---------- */
-  let filmIn = false, cardsIn = false;
+  /* User choices survive scrolling, visibility changes and opening the player.
+     Each video is observed separately: horizontal cards outside the scrollport
+     must neither acquire a source nor keep playing. */
+  function updateControls() {
+    filmToggle.textContent = enabled(filmState) ? "Pause film" : "Play film";
+    cardsToggle.textContent = enabled(cardsState) ? "Pause previews" : "Play previews";
+  }
+  function toggle(state) {
+    state.choice = enabled(state) ? "pause" : "play";
+    state.blocked = false;
+    sync();
+  }
+  filmToggle.addEventListener("click", () => toggle(filmState));
+  cardsToggle.addEventListener("click", () => toggle(cardsState));
+  function wantsPlayback(item) {
+    return item.inView && !document.hidden && !dialog.open && enabled(item.state);
+  }
+  function start(item) {
+    const v = item.video;
+    if (!v.paused || item.pending) return;
+    if (!v.getAttribute("src")) v.src = v.dataset.ptSrc;
+    item.pending = true;
+    const failed = (error) => {
+      // A pause during loading aborts play normally; a browser refusal needs
+      // an explicit retry, exposed by the same Play control.
+      if (error && error.name !== "AbortError") item.state.blocked = true;
+    };
+    const settled = () => {
+      item.pending = false;
+      if (!wantsPlayback(item)) v.pause();
+      else if (v.paused) start(item);
+      updateControls();
+    };
+    try {
+      const attempt = v.play();
+      if (attempt && attempt.then) attempt.then(settled, (error) => { failed(error); settled(); sync(); });
+      else settled();
+    } catch (error) { failed(error); settled(); }
+  }
   function sync() {
-    const ok = !reduceMQ.matches && !document.hidden && !dialog.open;
-    if (ok && filmIn) start(film); else if (!film.paused) film.pause();
-    cardVideos.forEach((v) => { if (ok && cardsIn) start(v); else if (!v.paused) v.pause(); });
+    playback.forEach((item) => {
+      if (wantsPlayback(item)) start(item);
+      else item.video.pause();
+    });
+    updateControls();
   }
   if ("IntersectionObserver" in window) {
-    new IntersectionObserver((es) => { filmIn = es[0].isIntersecting; sync(); }, { threshold: 0.35 }).observe(filmFig);
-    new IntersectionObserver((es) => {
-      cardsIn = es[0].isIntersecting;
-      if (cardsIn) gallery.classList.add("is-in");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const item = playback.find((p) => p.video === entry.target);
+        item.inView = entry.isIntersecting && entry.intersectionRatio >= 0.35;
+        if (item.inView && item.state === cardsState) gallery.classList.add("is-in");
+      });
       sync();
-    }, { threshold: 0.2 }).observe(gallery);
-  } else { gallery.classList.add("is-in"); }
+    }, { threshold: [0, 0.35] });
+    playback.forEach((item) => observer.observe(item.video));
+  } else {
+    // Keep explicit playback usable in older browsers while also accounting
+    // for the gallery's horizontal clipping.
+    const measure = () => {
+      const g = gallery.getBoundingClientRect();
+      playback.forEach((item) => {
+        const r = item.video.getBoundingClientRect();
+        const left = item.state === cardsState ? Math.max(0, g.left) : 0;
+        const right = item.state === cardsState ? Math.min(innerWidth, g.right) : innerWidth;
+        const width = Math.max(0, Math.min(right, r.right) - Math.max(left, r.left));
+        const height = Math.max(0, Math.min(innerHeight, r.bottom) - Math.max(0, r.top));
+        item.inView = r.width * r.height > 0 && width * height / (r.width * r.height) >= 0.35;
+      });
+      sync();
+    };
+    gallery.classList.add("is-in");
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    gallery.addEventListener("scroll", measure, { passive: true });
+    measure();
+  }
   document.addEventListener("visibilitychange", sync);
+  const onReduceChange = () => {
+    if (reduceMQ.matches) [filmState, cardsState].forEach((state) => {
+      // A newly enabled OS preference pauses motion; Play remains available.
+      if (state.choice === "play") state.choice = null;
+    });
+    sync();
+  };
+  if (reduceMQ.addEventListener) reduceMQ.addEventListener("change", onReduceChange);
+  else if (reduceMQ.addListener) reduceMQ.addListener(onReduceChange);
+  updateControls();
 
-  /* links such as #policy-star (the appendix tables) open the four cameras on that task */
-  window.addEventListener("hashchange", () => {
-    const m = /^#policy-(star|tube|airplane|car)$/.exec(location.hash);
-    if (m && !dialog.open) openTask(TASKS.find((t) => t.id === m[1]));
+  /* Initial deep links, browser navigation and repeated same-hash clicks all
+     open the requested task. Modified clicks retain normal link behavior. */
+  const taskFromHash = (hash) => TASKS.find((t) => hash === `#policy-${t.id}`);
+  const openFromHash = () => {
+    const task = taskFromHash(location.hash);
+    if (task) openTask(task, null, false);
+    else if (dialog.open) shut();
+  };
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest("a[href]");
+    if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+    const task = taskFromHash(url.hash);
+    if (!task) return;
+    event.preventDefault();
+    if (location.hash !== url.hash) history.pushState(history.state, "", url.hash);
+    openTask(task, link, false);
   });
+  window.addEventListener("hashchange", openFromHash);
 
   window.PRISM_DRAFT = window.PRISM_DRAFT || {};
   window.PRISM_DRAFT.posttrain = { open: (id) => openTask(TASKS.find((t) => t.id === id) || TASKS[0]), close: shut, film, dialog };
+  openFromHash();
 })();

@@ -53,6 +53,12 @@ main { display: block; }
 }
 .callout--inline span { min-width: 0; }
 
+/* Short introductions and captions share the width of their media. Keep the
+   prose limit for long-form text inside the overview and method details. */
+.container--wide > .section-header > .lede,
+.container--wide > .figure > figcaption,
+.container--wide > .callout--inline { max-width: none; }
+
 .lede--more { max-width: var(--max-prose); font-size: var(--fs-lede); line-height: 1.6; color: var(--muted); }
 .lede--more p { margin: 0; }
 .more { margin-top: 0.15rem; }

@@ -239,14 +239,17 @@
   }
   window.addEventListener("resize", fitStage);
   if ("ResizeObserver" in window) new ResizeObserver(fitStage).observe(now);   // a caption that wraps to a 2nd line
-  function openStory(s, from) {
+  function openStory(s, from, { updateHash = true } = {}) {
+    if (!s) return;
     opener = from || null;
     previews.forEach((p) => [...p.videos, p.judge].forEach((v) => { if (v && !v.paused) v.pause(); }));
     dialog.style.transformOrigin = "top left";
-    if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+    if (!dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.setAttribute("open", "");
+    }
     document.documentElement.classList.add("mpc-dialog-open");
     near = true;
-    select(s, { user: true });
+    select(s, { user: true, updateHash });
     fitStage();
     flip(cardRect(), false);
     if (reduceMQ.matches) applyMedia(); else play(true);
@@ -633,6 +636,7 @@
   /* ---------- Stories ---------- */
   function select(s, { updateHash = true, user = false } = {}) {
     if (!s) return;
+    if (updateHash) history.replaceState(history.state, "", `#mpc-${s.id}`);
     if (s === story) {                 /* the current story again: just let it play */
       if (user) userPaused = false;
       sync();
@@ -668,10 +672,12 @@
     render(0);
     applyMedia();
     if (user) { userPaused = false; }
-    if (updateHash) history.replaceState(history.state, "", `#mpc-${s.id}`);
     sync();
   }
-  const byHash = (hash) => STORIES.find((s) => hash === `#mpc-${s.id}` || (s.alias && hash === `#mpc-${s.alias}`));
+  function byHash(hash) {
+    try { hash = decodeURIComponent(hash); } catch (_) { return null; }
+    return STORIES.find((s) => hash === `#mpc-${s.id}` || (s.alias && hash === `#mpc-${s.alias}`));
+  }
   tabButtons.forEach((b) => b.addEventListener("click", () => select(STORIES.find((s) => s.id === b.dataset.story), { user: true })));
   tabs.addEventListener("keydown", (event) => {
     const index = tabButtons.indexOf(document.activeElement);
@@ -688,7 +694,22 @@
   });
   window.addEventListener("hashchange", () => {
     const s = byHash(location.hash);
-    if (s && s !== story) select(s, { updateHash: false });
+    if (s) openStory(s, null, { updateHash: false });
+  });
+  /* Handle same-fragment links too: closing a story leaves its shareable URL
+     in place, so the next click need not produce a hashchange. */
+  document.addEventListener("click", (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest("a[href]");
+    if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    let url;
+    try { url = new URL(link.href, location.href); } catch (_) { return; }
+    if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+    const s = byHash(url.hash);
+    if (!s) return;
+    event.preventDefault();
+    if (location.hash !== url.hash) history.pushState(history.state, "", url.hash);
+    openStory(s, link, { updateHash: false });
   });
 
   /* ---------- Visibility, other page videos, reduced motion ---------- */
@@ -719,8 +740,10 @@
   if (reduceMQ.addEventListener) reduceMQ.addEventListener("change", onReduce);
   else if (reduceMQ.addListener) reduceMQ.addListener(onReduce);
 
-  const initial = byHash(location.hash) || STORIES.find((s) => s.id === DATA.default) || STORIES[0];
+  const linkedStory = byHash(location.hash);
+  const initial = linkedStory || STORIES.find((s) => s.id === DATA.default) || STORIES[0];
   select(initial, { updateHash: false });
+  if (linkedStory) openStory(linkedStory, null, { updateHash: false });
 
   window.PRISM_DRAFT.mpcPlayer = {
     open: (id) => openStory(STORIES.find((s) => s.id === id || s.alias === id)),
