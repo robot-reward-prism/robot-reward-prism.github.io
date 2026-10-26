@@ -107,8 +107,8 @@
   const note = el("p", { class: "policy-caption mpc-note" });
   const legendRows = [
     ["bad", "✕ policy alone", "The same start, without MPC."],
-    ["good", "✓ PRISM's pick", "The imagined future PRISM picked; it ran on the robot."],
-    ["bad", "✕ PRISM", "PRISM rated all four imagined futures too risky."],
+    ["good", "✓ PRISM's pick", "The candidate rollout selected using PRISM and executed on the robot."],
+    ["bad", "✕ PRISM", "All four candidate rollouts were rejected based on PRISM scores."],
     ["plain", "×N · fast-forward · MPC idle", "Sped up, or no planning in that stretch."],
   ];
   const legend = el("details", { class: "disclosure mpc-legend" },
@@ -157,12 +157,12 @@
       const cells = J.cells.map(([tone, txt], k) => el("span", { class: "mpc-judge-cell", "data-tone": tone, style: `--k:${k}` },
         el("span", { class: "mpc-judge-stamp" }, el("b", { text: tone === "good" ? "✓" : "✕" }), el("span", { text: txt }))));
       a.node.querySelector(".mpc-half-media").append(el("div", { class: "mpc-judge", "aria-hidden": "true" },
-        el("span", { class: "mpc-judge-head" }, el("span", { class: "mpc-judge-gem", text: "◆" }), el("span", {}, "PRISM judges 4 ", el("span", { class: "mpc-judge-im", text: "imagined " }), "futures")),
+        el("span", { class: "mpc-judge-head" }, el("span", { class: "mpc-judge-gem", text: "◆" }), el("span", {}, "PRISM scores 4 ", el("span", { class: "mpc-judge-im", text: "predicted " }), "rollouts")),
         el("div", { class: "mpc-judge-stage" }, jv, el("div", { class: "mpc-judge-grid" }, ...cells), el("span", { class: "mpc-judge-scan" })),
         el("span", { class: "mpc-judge-foot", "data-tone": J.cells.some((c) => c[0] === "good") ? "good" : "bad", text: J.foot })));
     }
     const open = el("button", { class: "mpc-open", type: "button", "aria-haspopup": "dialog" },
-      el("span", { class: "mpc-open-ico", "aria-hidden": "true", text: "▶" }), el("span", { text: "Watch how PRISM fixes it" }),
+      el("span", { class: "mpc-open-ico", "aria-hidden": "true", text: "▶" }), el("span", { text: "View MPC comparison" }),
       el("span", { class: "mpc-open-dur", text: mmss(s.dur) }));
     const item = el("article", { class: "mpc-gcard", role: "listitem", "data-story": s.id, "aria-labelledby": `mpc-g-${s.id}` },
       el("h3", { class: "mpc-gcard-title", id: `mpc-g-${s.id}`, text: s.title }),

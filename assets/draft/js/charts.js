@@ -9,23 +9,23 @@
   "use strict";
   const CHARTS = {
     zeroshot: {
-      title: "20.7 % lower error than RoboMeter",
-      sub: "Progress error (RMSE) on 50 held-out tasks the models never saw. Shorter bar = better.",
+      title: "20.7 % lower RMSE than fine-tuned RoboMeter",
+      sub: "Progress RMSE on 50 tasks held out from reward-model training. Lower is better.",
       max: 0.3, fmt: 3,
       rows: [{ label: "RoboMeter", meta: "official release", v: 0.279, kind: "ref" }, { label: "SARM", v: 0.268 }, { label: "SARM2", v: 0.237 },
              { label: "RoboMeter", meta: "fine-tuned on our 200 tasks", v: 0.227, kind: "best" }, { label: "PRISM", v: 0.180, kind: "ours", callout: "−20.7 %" }],
       note: "All models except the official release are trained on the same 200 tasks. Paper Fig. 4(a).",
     },
     pretrain: {
-      title: "More pretraining tasks, lower error",
+      title: "Effect of pretraining task count",
       sub: "PRISM pretrained on 15, 30 or 200 tasks, tested on the same 50 unseen tasks.",
       max: 0.3, fmt: 3,
       rows: [{ label: "15 tasks", v: 0.278 }, { label: "30 tasks", v: 0.222 }, { label: "200 tasks", v: 0.180, kind: "ours", callout: "−35.3 %" }],
       note: "Paper Fig. 4(b).",
     },
     longtask: {
-      title: "15 trajectories beat baselines trained on 100",
-      sub: "Progress error after adapting to a long assembly task. Shorter bar = better.",
+      title: "Lower RMSE with 15 adaptation trajectories",
+      sub: "Airplane and car assembly, compared with the strongest tested baseline adapted on 100 trajectories. RMSE in subtask units; lower is better.",
       max: 0.5, fmt: 3,
       groups: [
         { title: "Airplane model", meta: "9 subtasks", rows: [
@@ -40,8 +40,8 @@
       note: "Paper Table 3. The table below lists every method and budget.",
     },
     fivetask: {
-      title: "Lowest error on all five long-horizon tasks",
-      sub: "How much lower PRISM's error is than the best other model on each task, after adapting with 15 trajectories.",
+      title: "RMSE reduction across five long-horizon tasks",
+      sub: "Relative RMSE reduction against the lowest-error baseline on each task. PRISM is adapted with 15 trajectories; comparison models are listed beside each bar.",
       max: 40, pctlower: true,
       rows: [
         { label: "Pupgo car", meta: "18 subtasks · vs RoboMeter", v: 19.7, kind: "ours" },
@@ -53,19 +53,19 @@
       note: "Airplane and car are from the paper's Table 3; the other three tasks go beyond the paper.",
     },
     composition: {
-      title: "Composing subtasks cuts the error; pretraining cuts it further",
-      sub: "Progress error on car model assembly, zero-shot, with the same Qwen3.5-4B backbone. Shorter bar = better.",
+      title: "Effect of subtask composition and PRISM pretraining",
+      sub: "Zero-shot progress RMSE on car assembly with Qwen3.5-4B. Values are in subtask units; lower is better.",
       max: 5, fmt: 3,
       rows: [
-        { label: "Direct prediction", meta: "the base model guesses whole-task progress", v: 4.541 },
+        { label: "Direct prediction", meta: "predict whole-task progress directly", v: 4.541 },
         { label: "+ Composition", meta: "select the subtask, predict its progress", v: 3.068, kind: "best", callout: "−32 %" },
-        { label: "+ PRISM pretraining", meta: "the same workflow, our pretrained model", v: 1.380, kind: "ours", callout: "−55 %" },
+        { label: "+ PRISM pretraining", meta: "same procedure with PRISM-pretrained weights", v: 1.380, kind: "ours", callout: "−55 %" },
       ],
-      note: "With GPT6, composition alone cuts the error from 1.578 to 0.524. Paper Table 8.",
+      note: "With GPT6, composition reduces RMSE from 1.578 to 0.524. Paper Table 8.",
     },
     embodiment: {
-      title: "18.7 % lower error on a new robot",
-      sub: "Airplane assembly moved from the YAM robot to Tianji, adapted with 10 Tianji trajectories. Shorter bar = better.",
+      title: "18.7 % lower RMSE than RoboMeter on Tianji",
+      sub: "Transfer from YAM to Tianji for airplane assembly, with 10 adaptation trajectories. RMSE in subtask units; lower is better.",
       max: 1.25, fmt: 3,
       rows: [{ label: "SARM2", v: 1.167 }, { label: "SARM", v: 0.919 }, { label: "RoboMeter", v: 0.556, kind: "best" },
              { label: "PRISM", v: 0.452, kind: "ours", callout: "−18.7 %" }],
@@ -77,16 +77,16 @@
       stats: [["0.47 s", "41.55 s", "per query (latency over 8,000 calls)"], ["$0", "≈ $38", "per trajectory (API at 1 fps, 340 s trajectories)"]],
     },
     offlinerl: {
-      type: "multiples", dark: true, pct: true, title: "Offline RL, every reward source",
-      sub: "Success rate, higher is better · the same scored BC rollouts per task · Fig. 5",
+      type: "multiples", dark: true, pct: true, title: "Offline RL with different reward sources",
+      sub: "Policy success rate · shared BC rollouts within each task · paper Fig. 5",
       panels: [
         { title: "Star insertion", meta: "20 trials", max: 100, rows: [["BC", 20.0], ["Sparse", 30.0], ["SARM2", 45.0], ["RoboMeter (official)", 45.0], ["RoboMeter (finetuned)", 50.0], ["PRISM", 65.0, "ours"]] },
         { title: "Tube transfer", meta: "12 trials", max: 100, rows: [["BC", 33.3], ["Sparse", 33.3], ["SARM2", 41.7], ["RoboMeter (official)", 33.3], ["RoboMeter (finetuned)", 41.7], ["PRISM", 66.7, "ours"]] },
       ],
     },
     weightedbc: {
-      type: "multiples", dark: true, pct: true, title: "Weighted cloning, both iterations",
-      sub: "Success rate, higher is better · 12 trials each · the BC parent starts at 25 % · Fig. 6",
+      type: "multiples", dark: true, pct: true, title: "Progress-weighted behavior cloning",
+      sub: "Policy success rate · two iterations · 12 trials per policy · initial BC success: 25 % · paper Fig. 6",
       panels: [
         { title: "Airplane · Iter1", meta: "same parent", max: 100, rows: [["Unweighted", 41.7], ["SARM2", 33.3], ["PRISM", 58.3, "ours"]] },
         { title: "Airplane · Iter2", meta: "best Iter1 parent", max: 100, rows: [["Unweighted", 50.0], ["PRISM", 75.0, "ours"]] },

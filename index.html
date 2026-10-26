@@ -58,14 +58,14 @@
     <!-- DRAFT (step 2): animated Fig. 2 and the MPC examples -->
     <link rel="stylesheet" href="assets/draft/css/fig2.css?v=2582844018" />
     <link rel="stylesheet" href="assets/draft/css/mpc.css?v=s4" />
-    <link rel="stylesheet" href="assets/draft/css/posttrain.css?v=1990212090" />
+    <link rel="stylesheet" href="assets/draft/css/posttrain.css?v=3932078377" />
     <link rel="stylesheet" href="assets/draft/css/charts.css?v=c11" />
     <script defer src="assets/draft/js/fig2-data.js?v=f2d1"></script>
     <script defer src="assets/draft/js/fig2.js?v=f2d5"></script>
     <script defer src="assets/draft/js/mpc-data.js?v=s2"></script>
-    <script defer src="assets/draft/js/mpc-player.js?v=76330556"></script>
-    <script defer src="assets/draft/js/posttrain-section.js?v=3744923146"></script>
-    <script defer src="assets/draft/js/charts.js?v=c6"></script>
+    <script defer src="assets/draft/js/mpc-player.js?v=4177936879"></script>
+    <script defer src="assets/draft/js/posttrain-section.js?v=1195749443"></script>
+    <script defer src="assets/draft/js/charts.js?v=3481177548"></script>
     <script defer src="assets/draft/js/topic-accordion.js?v=852957152"></script>
   </head>
   <body>
@@ -145,7 +145,7 @@
       <section class="section section-overview" id="overview" aria-labelledby="page-title">
         <div class="container container--intro intro">
           <h1 class="page-title" id="page-title"><span id="hero-title"></span>PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision</h1>
-          <p class="project-summary">PRISM composes subtask progress into a reward signal for long manipulation tasks. Structured supervision captures failures and recovery, helping the model evaluate and improve robot behavior.</p>
+          <p class="project-summary">PRISM estimates whole-task progress by composing subtask progress. It uses subtask and action-quality annotations to construct training targets that account for failures and recovery.</p>
           <div class="page-authors">
             <ol class="author-list" aria-label="Authors in manuscript order">
               <li><span class="author-name">Zi-ang Cao</span><sup>1,2,*</sup></li>
@@ -195,8 +195,8 @@
         <div class="container container--wide">
           <header class="section-header">
             <p class="kicker">01 · Compositional progress</p>
-            <h2 id="composition-title">Break down long tasks. Compose their progress.</h2>
-            <p class="lede">Describe a long task as a sequence of subtasks. Select the unfinished subtask, estimate its local progress, and combine it with credit for completed subtasks to track whole-task progress.</p>
+            <h2 id="composition-title">Estimating whole-task progress from subtasks.</h2>
+            <p class="lede">Given a task and its subtask descriptions, PRISM selects the unfinished subtask and estimates its local progress. It combines this estimate with credit for completed subtasks to obtain whole-task progress.</p>
           </header>
           <!-- DRAFT: animated Fig. 2 (assets/draft/js/fig2.js + fig2-data.js, assets/draft/css/fig2.css, assets/draft/video/fig2-airplane-*).
                Every module is on screen from the first frame; only the inside moves. The static figure stays one click away. -->
@@ -307,18 +307,18 @@
                     <button class="f2d-btn" type="button" data-act="prev" aria-label="Previous subtask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 1 0 1.4L10.4 12l4.3 4.3a1 1 0 1 1-1.4 1.4l-5-5a1 1 0 0 1 0-1.4l5-5a1 1 0 0 1 1.4 0z" /></svg></button>
                     <button class="f2d-btn" type="button" data-act="next" aria-label="Next subtask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.3 6.3a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4l-5 5a1 1 0 1 1-1.4-1.4l4.3-4.3-4.3-4.3a1 1 0 0 1 0-1.4z" /></svg></button>
                     <button class="f2d-btn" type="button" data-act="restart" aria-label="Restart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.93 8h2.03A5 5 0 1 0 12 7v2.6a.4.4 0 0 1-.66.3L7.6 6.6a.4.4 0 0 1 0-.6l3.74-3.3a.4.4 0 0 1 .66.3V5z" /></svg></button>
-                    <select class="f2d-rate" aria-label="Playback speed">
-                      <option value="0.5">0.5×</option>
-                      <option value="1" selected>1×</option>
-                      <option value="1.5">1.5×</option>
+                    <select class="f2d-rate" aria-label="Playback speed relative to real time">
+                      <option value="0.5">3×</option>
+                      <option value="1" selected>6×</option>
+                      <option value="1.5">9×</option>
                     </select>
                   </div>
                 </div>
               </div>
               <img class="f2d-fallback" src="assets/img/fig2-method-2500.webp" width="2500" height="888" alt="Architecture overview: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." loading="lazy" decoding="async" />
             </div>
-            <p class="sr-only" id="f2d-desc">Task context (assemble an airplane model, with its nine subtask descriptions) and four camera views go into a frozen vision–language model with trainable LoRA. By default, PRISM’s own VLM selects the unfinished subtask and passes its description to the model; any other subtask selector can be used. A trainable progress head, shared across subtasks, predicts that subtask’s local progress from 0 to 1. Composition adds one share of credit for every completed subtask: global progress equals k plus local progress, divided by K. The animation replays the outputs of PRISM, adapted to airplane assembly, on one selected held-out episode at six times speed, with light smoothing; this episode is not in the paper. PRISM moves through all nine subtasks, its local progress restarts at each new subtask, and global progress climbs to 0.99 without losing the credit of completed subtasks.</p>
-            <figcaption><b>From local to global task progress.</b> By default, PRISM’s own vision–language model selects the unfinished subtask; any other subtask selector can be used. The shared model estimates progress for the selected description, and composition adds credit for completed subtasks. <span class="f2d-cap-live">Replay at 6×: PRISM, adapted to airplane assembly, on one selected held-out episode (<i>K</i>&nbsp;=&nbsp;9); scores lightly smoothed; not in the paper.</span> <button class="f2d-link" type="button" data-expand="assets/img/fig2-method-2500.webp" data-expand-alt="Architecture overview: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." aria-label="View the static figure">View the static figure</button></figcaption>
+            <p class="sr-only" id="f2d-desc">Task context (assemble an airplane model, with its nine subtask descriptions) and four camera views go into a frozen vision–language model with trainable LoRA. By default, PRISM’s own VLM selects the unfinished subtask and passes its description to the model; any other subtask selector can be used. A trainable progress head, shared across subtasks, predicts that subtask’s local progress from 0 to 1. Composition adds one share of credit for every completed subtask: global progress equals k plus local progress, divided by K. The animation replays the outputs of PRISM, adapted to airplane assembly, on one selected held-out episode at six times speed by default, with light smoothing; this episode is not in the paper. PRISM moves through all nine subtasks, its local progress restarts at each new subtask, and global progress climbs to 0.99 without losing the credit of completed subtasks.</p>
+            <figcaption><b>From local to global task progress.</b> By default, PRISM’s own vision–language model selects the unfinished subtask; any other subtask selector can be used. The shared model estimates progress for the selected description, and composition adds credit for completed subtasks. <span class="f2d-cap-live">Default playback: 6× real time. PRISM is adapted to airplane assembly; this replay uses one held-out episode (<i>K</i>&nbsp;=&nbsp;9) with lightly smoothed scores and is not included in the paper.</span> <button class="f2d-link" type="button" data-expand="assets/img/fig2-method-2500.webp" data-expand-alt="Architecture overview: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." aria-label="View the static figure">View the static figure</button></figcaption>
           </figure>
         </div>
       </section>
@@ -329,17 +329,17 @@
         <div class="container container--wide">
           <header class="section-header">
             <p class="kicker">02 · Reward accuracy</p>
-            <h2 id="predictions-title">Lower progress error, zero-shot and after adaptation.</h2>
-            <p class="lede">Against SARM, SARM2 and RoboMeter trained on the same data, and against GPT6 composition.</p>
+            <h2 id="predictions-title">Reward prediction before and after task adaptation.</h2>
+            <p class="lede">We compare PRISM with SARM, SARM2, RoboMeter, and GPT6 composition. Each experiment specifies the training and adaptation setting.</p>
           </header>
           <div class="evaluation-workspace">
             <nav class="evaluation-nav evaluation-nav--reader" aria-label="Reward accuracy topics">
               <span class="evaluation-nav-label">Topics</span>
               <div class="evaluation-nav-links">
-                <a id="acc-link-01" href="#acc-unseen" aria-current="location"><span class="reader-topic-title">Zero-shot on unseen tasks</span><span class="reader-topic-description">20.7 % lower error than RoboMeter</span></a>
-                <a id="acc-link-02" href="#acc-long"><span class="reader-topic-title">Adapting to long tasks</span><span class="reader-topic-description">15 trajectories beat baselines with 100</span></a>
-                <a id="acc-link-07" href="#acc-five"><span class="reader-topic-title">Five long-horizon tasks</span><span class="reader-topic-description">Lowest error on all five</span></a>
-                <a id="acc-link-03" href="#acc-composition"><span class="reader-topic-title">Why compose subtasks</span><span class="reader-topic-description">Error from 4.54 down to 1.38</span></a>
+                <a id="acc-link-01" href="#acc-unseen" aria-current="location"><span class="reader-topic-title">Zero-shot on unseen tasks</span><span class="reader-topic-description">20.7 % lower RMSE than fine-tuned RoboMeter</span></a>
+                <a id="acc-link-02" href="#acc-long"><span class="reader-topic-title">Adapting to long tasks</span><span class="reader-topic-description">15-trajectory PRISM vs 100-trajectory baselines</span></a>
+                <a id="acc-link-07" href="#acc-five"><span class="reader-topic-title">Five long-horizon tasks</span><span class="reader-topic-description">Lowest RMSE among the compared models</span></a>
+                <a id="acc-link-03" href="#acc-composition"><span class="reader-topic-title">Composition and pretraining</span><span class="reader-topic-description">RMSE: 4.54 → 1.38</span></a>
                 <a id="acc-link-04" href="#acc-robot"><span class="reader-topic-title">Transfer to a new robot</span><span class="reader-topic-description">18.7 % lower error than RoboMeter</span></a>
                 <a id="acc-link-05" href="#acc-cost"><span class="reader-topic-title">Inference cost</span><span class="reader-topic-description">88× faster than GPT6, no API fee</span></a>
                 <a id="acc-link-06" href="#reward-video-examples"><span class="reader-topic-title">Failure videos</span><span class="reader-topic-description">Progress through drops and retries</span></a>
@@ -465,7 +465,7 @@
                     </div>
                     <div class="inference-interpretation">
                       <div class="sr-desc" id="accuracy-gpt6-desc" hidden>Composition also helps a frontier VLM. GPT6's whole-task RMSE falls from 1.578 to 0.524, supporting subtask-based composition as a useful formulation for this long-horizon task. Our pretrained local-progress predictor improves accuracy while reducing API cost. Keeping GPT6's selected subtask fixed, replacing its progress predictor with ours lowers RMSE from 0.524 to 0.494 and avoids the GPT6 progress API call. The subtask-selection API call remains.</div>
-                      <p class="inference-explanation gpt6-note" id="gpt6-reference"><strong>GPT6</strong> refers to <strong>GPT6-Astra-high</strong> throughout this website.</p>
+                      <p class="inference-explanation gpt6-note" id="gpt6-reference"><strong>GPT6</strong> refers to <strong>GPT6-Astra-high</strong> throughout this page by 2026/09/15.</p>
                     </div>
                   </div>
                 </section>
@@ -502,7 +502,7 @@
               <section class="subsection evaluation-pane" id="acc-cost" data-evaluation-panel aria-label="Cost">
                 <figure class="pc pc--stats" aria-labelledby="cost-title">
                   <figcaption class="pc-head">
-                    <h4 class="pc-title" id="cost-title">88× faster per query, and no API bill</h4>
+                    <h4 class="pc-title" id="cost-title">Inference latency and API fees</h4>
                     <p class="pc-sub">PRISM on one NVIDIA H100 (batch size 1, sequential execution) vs GPT6 composition through its API.</p>
                   </figcaption>
                   <div class="pc-body pc-stats">
@@ -521,9 +521,9 @@
                       <p class="pc-stat-what">API fee per trajectory (1 fps, 340 s trajectories)</p>
                     </div>
                   </div>
-                  <p class="pc-note" id="prism-vram-note"><strong>GPU memory.</strong> Around 10 GB GPU VRAM for 4B model inference in <strong>BF16</strong> at batch size 1, with <strong>8 timesteps × 4 camera views = 32 images per call</strong>. Many GPU-equipped machines can support this memory footprint. Using fewer camera views, fewer timesteps, or lower numerical precision reduces VRAM usage further.</p>
+                  <p class="pc-note" id="prism-vram-note"><strong>GPU memory.</strong> Around 10 GB GPU VRAM for 4B model inference in <strong>BF16</strong> at batch size 1, with <strong>8 timesteps × 4 camera views = 32 images per call</strong>. Using fewer camera views, fewer timesteps, or lower numerical precision reduces VRAM usage further.</p>
                   <p class="pc-note"><strong>Sequential timing.</strong> The 0.47 s latency sums two model calls executed sequentially at batch size 1: subtask selection and local-progress prediction. Processing independent queries in parallel can improve throughput.</p>
-                  <p class="pc-note"><strong>Image workload.</strong> A typical complete scoring query uses two model calls, each with 8 sampled timesteps × 4 camera views: <strong>2 × 8 × 4 = 64 image inputs</strong> in total (32 per call). This large visual input workload helps explain GPT6’s longer API latency.</p>
+                  <p class="pc-note"><strong>Image workload.</strong> A typical complete scoring query uses two model calls, each with 8 sampled timesteps × 4 camera views: <strong>2 × 8 × 4 = 64 image inputs</strong> in total (32 per call). This input workload may contribute to GPT6’s longer API latency.</p>
                 </figure>
                 <details class="disclosure pc-fold">
                   <summary>Show the table</summary>
@@ -575,15 +575,15 @@
         <div class="container container--wide">
           <header class="section-header">
             <p class="kicker">03 · Post-training with PRISM</p>
-            <h2 id="policy-title">PRISM's progress trains better policies.</h2>
-            <p class="lede">PRISM scores the robot's own rollouts. The change in its progress becomes the reward for offline RL, or the weight for cloning, and the retrained policies succeed more often.</p>
+            <h2 id="policy-title">Policy learning with PRISM progress estimates.</h2>
+            <p class="lede">Changes in predicted progress are converted into rewards for offline RL or threshold-based imitation weights for behavior cloning. The results below report policy success rates on four tasks.</p>
           </header>
         </div>
         <div class="band-dark policy-band pt-band">
           <div class="container container--wide">
             <div id="pt-section"></div>
             <details class="disclosure pc-fold pc-fold--dark">
-              <summary>Every reward source · Figs. 5–6</summary>
+              <summary>Compare reward sources and training iterations · Figs. 5–6</summary>
               <div class="pc-stack">
                 <figure class="pc" data-pc="offlinerl"></figure>
                 <figure class="pc" data-pc="weightedbc"></figure>
@@ -599,8 +599,8 @@
         <div class="container container--wide">
           <header class="section-header">
             <p class="kicker">04 · Planning with PRISM</p>
-            <h2 id="mpc-title">PRISM catches the wrong step before the robot takes it.</h2>
-            <p class="lede">MPC lets the robot imagine a few futures. PRISM is the judge: it scores them and steers the robot away from the ones that fail. Without a judge, imagining doesn't help.</p>
+            <h2 id="mpc-title">Model predictive control with PRISM.</h2>
+            <p class="lede">PRISM scores candidate rollouts predicted by a world model to guide action selection. The examples below compare the policy alone with PRISM-guided model predictive control (MPC).</p>
           </header>
         </div>
         <div class="band-dark policy-band mpc-band">
@@ -616,7 +616,7 @@
           <header class="section-header">
             <p class="kicker">05 · Details</p>
             <h2 id="details-title">Method details.</h2>
-            <p class="lede">How the progress targets are built, the model, and the policy-learning setups.</p>
+            <p class="lede">Progress-target construction, model architecture, and policy-learning settings.</p>
           </header>
           <div class="evaluation-workspace method-workspace">
             <nav class="evaluation-nav evaluation-nav--reader" aria-label="Method details topics">
@@ -636,7 +636,7 @@
                 <section class="method-module" id="supervision-example" aria-labelledby="supervision-title">
                   <header class="supervision-heading">
                     <p class="supervision-context mono-meta">Airplane assembly · Insert the screw · Subtask 7 of 9</p>
-                    <h4 class="h4" id="supervision-title">Reset local progress. Preserve completed work.</h4>
+                    <h4 class="h4" id="supervision-title">Local progress resets; completed-subtask credit remains.</h4>
                   </header>
                   <div class="supervision-stage">
                     <div class="supervision-media">
@@ -794,8 +794,8 @@
                   <tbody>
                     <tr><th scope="row">Backbone</th><td>Qwen3.5-4B vision–language model; base weights and visual encoder frozen</td></tr>
                     <tr><th scope="row">Trained</th><td>LoRA adapters (rank 32) in the language decoder, and the progress head</td></tr>
-                    <tr><th scope="row">Input per query</th><td>Task instruction, the ordered subtask descriptions, and eight sampled timesteps of synchronized camera views around the query time</td></tr>
-                    <tr><th scope="row">Two queries</th><td>Select the subtask to evaluate from the supplied list, then predict progress for that description</td></tr>
+                    <tr><th scope="row">Input per model call</th><td>Task instruction, the ordered subtask descriptions, and eight sampled timesteps of synchronized camera views around the query time</td></tr>
+                    <tr><th scope="row">Two calls per scoring query</th><td>Select the subtask to evaluate from the supplied list, then predict progress for that description</td></tr>
                     <tr><th scope="row">Optimization</th><td>Learning rate \(2\times10^{-5}\) · batch size 128 (all methods)</td></tr>
                   </tbody>
                 </table></div>
@@ -865,8 +865,8 @@
         <div class="container container--wide">
           <header class="section-header">
             <p class="kicker">06 · Pretraining task examples</p>
-            <h2 id="tasks-title">200 mostly short tasks; 50 held out.</h2>
-            <p class="lede">A sample of the everyday-manipulation tasks used to pretrain our model, with subtask descriptions and structured quality annotations. The long assembly tasks and the two offline-RL tasks are held out.</p>
+            <h2 id="tasks-title">200 pretraining tasks; 50 held-out evaluation tasks.</h2>
+            <p class="lede">Examples from the mostly short manipulation tasks used for pretraining, with subtask descriptions and action-quality annotations. The long assembly tasks and the two offline-RL tasks are excluded from pretraining.</p>
           </header>
           <div class="gallery" id="task-gallery" data-tasks></div>
         </div>

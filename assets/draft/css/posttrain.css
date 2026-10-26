@@ -11,6 +11,8 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12), 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 .pt-film-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.pt-film-video:fullscreen { object-fit: contain; background: #000; }
+.pt-film-video:-webkit-full-screen { object-fit: contain; background: #000; }
 .pt-playback {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; min-height: 44px;
   padding: 0.45rem 0.8rem; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.2); background: rgba(8, 10, 14, 0.72);

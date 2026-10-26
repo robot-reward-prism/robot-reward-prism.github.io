@@ -63,8 +63,8 @@
     el("div", { class: "pt-film-media" }, film),
     el("div", { class: "pt-film-controls" }, filmToggle, full),
     el("figcaption", { class: "pt-film-cap" },
-      el("strong", { text: "How it works, then the results." }),
-      el("span", { text: " A real rollout: PRISM's progress drops when the wing slips; the change in progress becomes the reward or the weight." }),
+      el("strong", { text: "Progress-based policy training." }),
+      el("span", { text: " In this rollout, predicted progress decreases when the wing slips. Progress differences are converted into rewards or imitation weights." }),
       el("span", { class: "pt-film-dur", text: "0:33 · no sound" })));
   playback.push({ video: film, state: filmState, inView: false, pending: false });
 
