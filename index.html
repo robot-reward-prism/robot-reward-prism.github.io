@@ -188,13 +188,6 @@
             </a>
           </div>
 
-          <div class="abstract">
-            <nav class="explore-links hero-links" aria-label="Explore PRISM">
-              <a href="#predictions">Reward accuracy <span aria-hidden="true">→</span></a>
-              <a href="#policy">Post-training <span aria-hidden="true">→</span></a>
-              <a href="#details">Method details <span aria-hidden="true">→</span></a>
-            </nav>
-          </div>
         </div>
       </section>
 
@@ -327,7 +320,6 @@
             <p class="sr-only" id="f2d-desc">Task context (assemble an airplane model, with its nine subtask descriptions) and four camera views go into a frozen vision–language model with trainable LoRA. By default, PRISM’s own VLM selects the unfinished subtask and passes its description to the model; any other subtask selector can be used. A trainable progress head, shared across subtasks, predicts that subtask’s local progress from 0 to 1. Composition adds one share of credit for every completed subtask: global progress equals k plus local progress, divided by K. The animation replays the outputs of PRISM, adapted to airplane assembly, on one selected held-out episode at six times speed, with light smoothing; this episode is not in the paper. PRISM moves through all nine subtasks, its local progress restarts at each new subtask, and global progress climbs to 0.99 without losing the credit of completed subtasks.</p>
             <figcaption><b>From local to global task progress.</b> By default, PRISM’s own vision–language model selects the unfinished subtask; any other subtask selector can be used. The shared model estimates progress for the selected description, and composition adds credit for completed subtasks. <span class="f2d-cap-live">Replay at 6×: PRISM, adapted to airplane assembly, on one selected held-out episode (<i>K</i>&nbsp;=&nbsp;9); scores lightly smoothed; not in the paper.</span> <button class="f2d-link" type="button" data-expand="assets/img/fig2-method-2500.webp" data-expand-alt="Architecture overview: task and subtask descriptions plus multi-view observations feed a shared vision-language model; subtask selection and local progress are composed into whole-task progress." aria-label="View the static figure">View the static figure</button></figcaption>
           </figure>
-          <p class="predictor-invariant callout callout--inline f2-invariant"><strong>Same everywhere</strong><span>One architecture and one language interface for pretraining, adaptation and inference.</span></p>
         </div>
       </section>
 
