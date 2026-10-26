@@ -287,6 +287,7 @@
   .mpc-gallery { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 0.9rem; padding-bottom: 0.6rem; overscroll-behavior-x: contain; }
   .mpc-gcard { flex: 0 0 min(78vw, 360px); scroll-snap-align: start; }
   .mpc-gcard:hover { transform: none; }
+  .mpc-half-speed { top: auto; bottom: 0.5rem; }
 }
 @media (prefers-reduced-motion: reduce) { .mpc-gcard, .mpc-open { transition: none; } .mpc-gcard:hover { transform: none; } }
 
