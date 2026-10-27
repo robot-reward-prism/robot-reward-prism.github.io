@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision. Videos, implementation details, and reward-prediction experiments." />
+    <meta name="description" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision. Videos, reward-prediction experiments, and policy-learning results." />
     <meta name="theme-color" content="#0b0a16" />
     <meta property="og:title" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision" />
-    <meta property="og:description" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision. Videos, implementation details, and reward-prediction experiments." />
+    <meta property="og:description" content="PRISM: Compositional Reward Modeling for Long-Horizon Manipulation with Structured Progress Supervision. Videos, reward-prediction experiments, and policy-learning results." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://robot-reward-prism.github.io/" />
     <link rel="canonical" href="https://robot-reward-prism.github.io/" />
@@ -49,12 +49,10 @@
     <script defer src="assets/js/data/tasks.js?v=2738016340"></script>
     <script defer src="assets/draft/js/tasks-draft.js?v=t2"></script><!-- DRAFT: drops the long-instruction tasks from the gallery (before app.js renders it) -->
     <script defer src="assets/js/data/predictions.js?v=238110375"></script>
-    <script defer src="assets/js/data/supervision.js?v=229931450"></script>
     <script defer src="assets/js/app.js?v=509924336"></script>
     <script defer src="assets/js/evaluation-nav.js?v=2386313955"></script>
     <script defer src="assets/js/policy.js?v=2279950399"></script>
     <script defer src="assets/js/prediction-player.js?v=2039737276"></script>
-    <script defer src="assets/js/supervision-example.js?v=3481130803"></script>
     <!-- DRAFT (step 2): animated Fig. 2 and the MPC examples -->
     <link rel="stylesheet" href="assets/draft/css/fig2.css?v=2582844018" />
     <link rel="stylesheet" href="assets/draft/css/mpc.css?v=4173300002" />
@@ -98,7 +96,6 @@
         <a class="nav-link" href="#predictions">Accuracy</a>
         <a class="nav-link" href="#policy">Post-training</a>
         <a class="nav-link" href="#mpc">MPC</a>
-        <a class="nav-link" href="#details">Details</a>
         <a class="nav-link" href="#tasks">Tasks</a>
         <a class="nav-link" href="#bibtex">BibTeX</a>
       </div>
@@ -610,261 +607,10 @@
         </div>
       </section>
 
-      <!-- DRAFT (step 6): the details as one topic module; every part is its own topic, shown in full (no folds). -->
-      <section class="section" id="details" aria-labelledby="details-title">
-        <div class="container container--wide">
-          <header class="section-header">
-            <p class="kicker">05 · Details</p>
-            <h2 id="details-title">Method details.</h2>
-            <p class="lede">Progress-target construction, model architecture, and policy-learning settings.</p>
-          </header>
-          <div class="evaluation-workspace method-workspace">
-            <nav class="evaluation-nav evaluation-nav--reader" aria-label="Method details topics">
-              <span class="evaluation-nav-label">Topics</span>
-              <div class="evaluation-nav-links">
-                <a id="method-link-01" href="#target-construction" aria-current="location"><span class="reader-topic-title">How a failure resets progress</span><span class="reader-topic-description">Interactive example: inserting the screw, subtask 7 of 9</span></a>
-                <a id="method-link-02" href="#target-labels"><span class="reader-topic-title">Whole-task progress and labels</span><span class="reader-topic-description">The progress formula and the three quality labels</span></a>
-                <a id="method-link-03" href="#target-local"><span class="reader-topic-title">Building the local target</span><span class="reader-topic-description">Parameters and the three construction steps</span></a>
-                <a id="method-link-04" href="#model-training"><span class="reader-topic-title">Model and training</span><span class="reader-topic-description">Qwen3.5-4B with LoRA; inputs and settings</span></a>
-                <a id="method-link-05" href="#policy-learning"><span class="reader-topic-title">Policy-learning setups</span><span class="reader-topic-description">Offline RL and weighted cloning</span></a>
-              </div>
-            </nav>
-            <div class="evaluation-reader method-reader" id="method-reader" tabindex="0" role="region" aria-label="Method details">
-              <section class="evaluation-pane method-pane" id="target-construction" data-evaluation-panel aria-labelledby="target-construction-title">
-                <header class="method-pane-heading"><h3 id="target-construction-title">How a failure resets progress</h3><span class="sum-meta">Sec. 3.2 · Fig. 3</span></header>
-                <div class="details-body method-module-stack">
-                <section class="method-module" id="supervision-example" aria-labelledby="supervision-title">
-                  <header class="supervision-heading">
-                    <p class="supervision-context mono-meta">Airplane assembly · Insert the screw · Subtask 7 of 9</p>
-                    <h4 class="h4" id="supervision-title">Local progress resets; completed-subtask credit remains.</h4>
-                  </header>
-                  <div class="supervision-stage">
-                    <div class="supervision-media">
-                      <div class="supervision-video-frame">
-                        <video id="supervision-video" data-src="assets/video/supervision/screw-insertion/cameras.mp4" poster="assets/video/supervision/screw-insertion/cameras.jpg" width="1280" height="960" muted playsinline preload="metadata" aria-label="Four synchronized camera views of screw insertion, failure and recovery"></video>
-                      </div>
-                      <div class="supervision-plot">
-                        <div class="supervision-legend" aria-label="Curve legend">
-                          <span><i class="supervision-swatch supervision-swatch--ours"></i>Subtask + AQ (ours)</span>
-                          <span><i class="supervision-swatch supervision-swatch--credit"></i>Completed credit</span>
-                          <span><i class="supervision-swatch supervision-swatch--failure"></i>Regressed</span>
-                        </div>
-                        <div data-supervision-chart></div>
-                        <div class="supervision-target-link" role="group" aria-label="Current local and whole-task progress">
-                          <span>Local <i>p</i> <strong data-supervision-local-value>= 0</strong></span>
-                          <span aria-hidden="true">→</span>
-                          <span>Whole-task <i>P</i> <strong data-supervision-whole-value>= 6/9</strong></span>
-                        </div>
-                      </div>
-                      <div class="supervision-transport transport">
-                        <button class="btn btn--sm btn--play" type="button" data-supervision-play>Play</button>
-                        <button class="btn btn--sm btn--ghost" type="button" data-supervision-replay>Replay</button>
-                        <input type="range" min="0" max="1116" step="1" value="0" data-supervision-seek aria-label="Elapsed time within the screw insertion subtask" />
-                        <output class="transport-time" data-supervision-time>0:00.0 / 0:37.2</output>
-                        <span class="supervision-speed transport-chip" aria-label="Playback speed fixed at 4 times">4× playback</span>
-                      </div>
-                    </div>
-                    <div class="supervision-segments" role="group" aria-label="Select an annotated segment">
-                      <button type="button" class="supervision-segment" data-supervision-segment="attempt" aria-pressed="true">
-                        <span class="supervision-segment-label">1 · Before failure</span>
-                        <strong>Case A · Interrupted by regression</strong>
-                        <span class="supervision-segment-window" data-supervision-window="attempt"></span>
-                        <span class="supervision-segment-value"><i>T</i><sub>chunk</sub> = <span data-supervision-duration="attempt"></span> s</span>
-                      </button>
-                      <button type="button" class="supervision-segment" data-supervision-segment="failure" aria-pressed="false">
-                        <span class="supervision-segment-label">2 · Regression</span>
-                        <strong>Reset local progress</strong>
-                        <span class="supervision-segment-value">\(p=0\)</span>
-                        <span class="supervision-segment-window">Completed credit stays at <span data-supervision-credit></span></span>
-                      </button>
-                      <button type="button" class="supervision-segment" data-supervision-segment="recovery" aria-pressed="false">
-                        <span class="supervision-segment-label">3 · Recovery</span>
-                        <strong>Case B · Reaches the subtask boundary</strong>
-                        <span class="supervision-segment-window" data-supervision-window="recovery"></span>
-                        <span class="supervision-segment-value"><i>T</i><sub>chunk</sub> = <span data-supervision-duration="recovery"></span> s</span>
-                      </button>
-                    </div>
-                    <p class="supervision-state" data-supervision-status role="status">Nominal execution · Six completed subtasks retain their credit.</p>
-                    <p class="supervision-error" data-supervision-error role="status" hidden></p>
-                  </div>
-                  <div class="supervision-explanation">
-                    <p>In this constructed target, failure resets insertion progress to 0 and whole-task progress to 6/9. The six completed subtasks retain their credit throughout failure and recovery.</p>
-                    <p>Each attempt here is a chunk of duration \(T_{\mathrm{chunk}}\): the first ends in regression (Case A), and the recovery reaches the subtask boundary (Case B).</p>
-                  </div>
-                </section>
-                </div>
-              </section>
-              <section class="evaluation-pane method-pane" id="target-labels" data-evaluation-panel aria-labelledby="target-labels-title">
-                <header class="method-pane-heading"><h3 id="target-labels-title">Whole-task progress and labels</h3><span class="sum-meta">Sec. 3.2</span></header>
-                <p class="details-short">The construction below turns sparse annotations into dense progress targets for the synchronized example above.</p>
-                <div class="details-body method-module-stack">
-                <section class="method-module" id="target-composition" aria-labelledby="target-composition-title">
-                  <h4 class="h4" id="target-composition-title">Whole-task composition</h4>
-                  <div class="module-split">
-                    <div class="math-block math-block--hero">\[ P_t^\star=\frac{k_t^\star+p_t}{K}. \]</div>
-                    <div class="module-text">
-                      <p>Here, \(t\) is global time along the whole-task trajectory. \(k_t^\star\) is the zero-based subtask index, \(p_t\) is that subtask's local progress at global time \(t\), and \(K\) is the number of subtasks. Completed subtasks retain their credit when \(p_t\) resets. At a completed boundary, \((k,1)\) and \((k+1,0)\) coincide.</p>
-                      <p><strong>The remaining quantity is \(p_t\):</strong> below, construct this local progress from subtask boundaries, action quality, and subtask outcomes.</p>
-                    </div>
-                  </div>
-                </section>
-                <section class="method-module" id="target-annotations" aria-labelledby="annotation-protocol">
-                  <h4 class="h4" id="annotation-protocol">Sparse annotations</h4>
-                  <p class="module-lede">Annotators mark subtask boundaries, action-quality (AQ) intervals of suboptimal or regressed execution, and subtask outcomes. Unmarked intervals are nominal; no dense progress scores are required.</p>
-                  <dl class="quality-definitions">
-                    <div class="quality quality--good"><dt><span class="q q--good">Nominal</span></dt><dd>Execution follows the task normally.</dd></div>
-                    <div class="quality quality--warn"><dt><span class="q q--warn">Suboptimal</span></dt><dd>Degraded execution without physical failure, such as a misaligned screw that remains held.</dd></div>
-                    <div class="quality quality--bad"><dt><span class="q q--bad">Regressed</span></dt><dd>Local progress is lost through physical failure, such as dropping the screw.</dd></div>
-                  </dl>
-                </section>
-                </div>
-              </section>
-              <section class="evaluation-pane method-pane" id="target-local" data-evaluation-panel aria-labelledby="target-local-title">
-                <header class="method-pane-heading"><h3 id="target-local-title">Building the local progress target</h3><span class="sum-meta">Sec. 3.2</span></header>
-                <div class="details-body method-module-stack">
-                <section class="method-module target-algorithm" id="target-algorithm" aria-labelledby="target-local-title">
-                  <p class="module-lede">The full construction uses the parameters and three steps below to turn sparse annotations into a local progress target.</p>
-                  <section id="target-definitions" aria-labelledby="target-definitions-title">
-                    <h5 class="h5" id="target-definitions-title">Construction parameters</h5>
-                    <dl class="target-parameters" aria-label="Construction parameters">
-                      <div><dt>\(\rho&gt;1\)</dt><dd>Nominal-to-suboptimal slope ratio</dd></div>
-                      <div><dt>\(0&lt;p_{\mathrm{cap}}&lt;1\)</dt><dd>The maximum within-subtask progress we can reach before a regression can happen.</dd></div>
-                      <div><dt>\(T_{\min}&gt;0\)</dt><dd>Fastest measured time to reach \(p_{\mathrm{cap}}\) across diverse trials.</dd></div>
-                    </dl>
-                    <div class="detail-block" id="target-parameter-selection"><h5 class="h5 detail-block-title">How the example parameters are set <span class="sum-meta">p<sub>cap</sub> = 0.95 · T<sub>min</sub> = 9 s</span></h5>
-                      <div class="disclosure-body">
-                        <p>For screw insertion, we compare successful demonstrations with deliberately induced failures across 20+ diverse trials collected in advance.</p>
-                        <p><strong>\(p_{\mathrm{cap}}\): the latest observed failure point.</strong> Failure can occur while picking up the screw, or much later, just before the screw enters the hole. Comparing these points with successful demonstrations places the latest observed failures that reset progress just below 0.95 local progress. We therefore use \(p_{\mathrm{cap}}=0.95\) for this subtask.</p>
-                        <p><strong>\(T_{\min}\): the fastest measured time to reach that point.</strong> Across the diverse trajectories, the fastest observed time to reach this progress level is approximately 9 s. We use \(T_{\min}=9\,\mathrm{s}\) in this example.</p>
-                      </div>
-                    </div>
-                  </section>
-                  <div class="detail-block" id="target-algorithm-steps"><h5 class="h5 detail-block-title">The three construction steps <span class="sum-meta">locate · endpoint · accumulate</span></h5>
-                    <div class="disclosure-body">
-                      <ol class="target-algorithm-steps" aria-label="Local progress construction">
-                        <li>
-                          <h5>Locate and weight the chunk</h5>
-                          <div>
-                            <p>Locate a chunk between its latest reset, \(\tau_{\mathrm{start}}\), and the next reset, \(\tau_{\mathrm{next}}\). Resets are triggered by subtask boundaries or regressed AQ; nominal/suboptimal changes stay within the same chunk.</p>
-                            <p>Both timestamps use \(t_{\mathrm{subtask}}\), the video time measured in seconds from the subtask's start. The full chunk duration and elapsed time within it are:</p>
-                            <div class="math-block">\[ \begin{aligned} T_{\mathrm{chunk}}&=\tau_{\mathrm{next}}-\tau_{\mathrm{start}},\\ t_{\mathrm{chunk}}&=t_{\mathrm{subtask}}-\tau_{\mathrm{start}}. \end{aligned} \]</div>
-                            <p>Use \(w_i=\rho\) for nominal updates and \(w_i=1\) for suboptimal updates.</p>
-                            <div class="math-block">\[ N_{\mathrm{chunk}}=\sum_{i\in\mathcal C}w_i\,\Delta t_{\mathrm{chunk},i}. \]</div>
-                            <p class="table-note">\(\mathcal C\) contains the current chunk's non-regressed updates. Use \(\Delta t_{\mathrm{chunk},i}=t_{\mathrm{chunk},i}-t_{\mathrm{chunk},i-1}\), with \(t_{\mathrm{chunk},0}=0\) at the reset. \(N_{\mathrm{chunk}}\) is their weighted duration.</p>
-                          </div>
-                        </li>
-                        <li>
-                          <h5>Set the endpoint, then the slope</h5>
-                          <div>
-                            <p>Let \(p_{\mathrm{chunk\_last}}\) be the target progress at the chunk's last non-regressed update. Choose this endpoint according to how the chunk ends:</p>
-                            <div class="target-algorithm-branches">
-                              <div data-supervision-branch="interrupted">
-                                <h6>Case A · Interrupted by regression</h6>
-                                <p>Regressed AQ begins before the subtask boundary. The time available determines the endpoint before the reset:</p>
-                                <div class="math-block">\[ p_{\mathrm{chunk\_last}}=p_{\mathrm{cap}}\min\!\left(1,\frac{T_{\mathrm{chunk}}}{T_{\min}}\right). \]</div>
-                                <p class="table-note">A shorter chunk reaches a proportionally lower endpoint; a chunk lasting at least \(T_{\min}\) reaches \(p_{\mathrm{cap}}\).</p>
-                              </div>
-                              <div data-supervision-branch="boundary">
-                                <h6>Case B · Reaches the subtask boundary</h6>
-                                <p>The chunk reaches the boundary without an intervening regression. Its endpoint is the annotated subtask outcome.</p>
-                                <div class="math-block">\[ p_{\mathrm{chunk\_last}}=\mathrm{subtask\_outcome}. \]</div>
-                              </div>
-                            </div>
-                            <p>For either case, use this endpoint to normalize the weighted updates:</p>
-                            <div class="math-block">\[ \mathrm{slope}_{\mathrm{chunk}}=\frac{p_{\mathrm{chunk\_last}}}{N_{\mathrm{chunk}}}. \]</div>
-                          </div>
-                        </li>
-                        <li class="target-algorithm-accumulate" data-supervision-branch="regressed">
-                          <h5>Accumulate or reset</h5>
-                          <div>
-                            <p>During regression, local progress is held at 0. Otherwise, accumulate from the current chunk's reset:</p>
-                            <div class="math-block">\[ p_{t_{\mathrm{chunk},j}}=\mathrm{slope}_{\mathrm{chunk}}\sum_{i=1}^{j}w_i\,\Delta t_{\mathrm{chunk},i}. \]</div>
-                            <p>At the corresponding global time \(t\), use this local value as \(p_t\) in the <a href="#target-composition">whole-task composition</a> above.</p>
-                          </div>
-                        </li>
-                      </ol>
-                    </div>
-                  </div>
-                </section>
-                </div>
-              </section>
-              <section class="evaluation-pane method-pane" id="model-training" data-evaluation-panel aria-labelledby="model-training-title">
-                <header class="method-pane-heading"><h3 id="model-training-title">Model and training</h3><span class="sum-meta">Sec. 3.3</span></header>
-                <div class="table-wrap table-card"><table class="table spec data-table spec-compact">
-                  <tbody>
-                    <tr><th scope="row">Backbone</th><td>Qwen3.5-4B vision–language model; base weights and visual encoder frozen</td></tr>
-                    <tr><th scope="row">Trained</th><td>LoRA adapters (rank 32) in the language decoder, and the progress head</td></tr>
-                    <tr><th scope="row">Input per model call</th><td>Task instruction, the ordered subtask descriptions, and eight sampled timesteps of synchronized camera views around the query time</td></tr>
-                    <tr><th scope="row">Two calls per scoring query</th><td>Select the subtask to evaluate from the supplied list, then predict progress for that description</td></tr>
-                    <tr><th scope="row">Optimization</th><td>Learning rate \(2\times10^{-5}\) · batch size 128 (all methods)</td></tr>
-                  </tbody>
-                </table></div>
-              </section>
-              <section class="evaluation-pane method-pane" id="policy-learning" data-evaluation-panel aria-labelledby="policy-learning-title">
-                <header class="method-pane-heading"><h3 id="policy-learning-title">Policy-learning setups</h3><span class="sum-meta">Secs. 3.4 and 4.5</span></header>
-              <div class="details-body method-reading-flow">
-            <section class="method-module policy-setup-section" id="offline-rl" aria-labelledby="offline-rl-title">
-              <header class="policy-setup-heading"><h4 class="h4" id="offline-rl-title">Offline RL</h4><span class="sum-meta">Sec. 3.4</span></header>
-              <div class="policy-setup-body">
-                <p>Reward models share BC rollouts and the reward conversion (paper, Sec. 3.4).</p>
-                <div class="policy-setup-table table-card">
-                  <table class="table policy-setup-data data-table" aria-label="Offline RL training data and evaluation trials">
-                    <thead><tr><th scope="col">Task</th><th scope="col">Training data</th><th scope="col" class="num">Eval. trials<small>per policy</small></th></tr></thead>
-                    <tbody>
-                      <tr><th scope="row"><a href="#policy-star">Star insertion</a></th><td>50 rollouts</td><td class="num">20</td></tr>
-                      <tr><th scope="row"><a href="#policy-tube">Tube transfer</a></th><td>45 rollouts</td><td class="num">12</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-                <p id="offline-rl-parameters">Action-chunk horizon: \(H=20\) steps. Per-step discount factor: \(\gamma=0.997\).</p>
-              </div>
-            </section>
-            <section class="method-module policy-setup-section" id="weighted-bc" aria-labelledby="weighted-bc-title">
-              <header class="policy-setup-heading"><h4 class="h4" id="weighted-bc-title">Progress-weighted behavior cloning (Weighted BC)</h4><span class="sum-meta">Sec. 4.5</span></header>
-              <div class="policy-setup-body">
-                <p>Within each task and iteration, reward-model comparisons on airplane and red car assembly share data, a parent policy, and the same thresholds and weighting rule (paper, Sec. 4.5).</p>
-                <p>We use <strong>D100 versions of PRISM and SARM2</strong> (fine-tuned with 100 target-task trajectories).</p>
-                <div class="policy-setup-table table-card">
-                  <table class="table policy-setup-data data-table" aria-label="Weighted BC training data and evaluation trials for airplane and red car assembly">
-                    <thead><tr><th scope="col">Iteration</th><th scope="col">Training data<small>per task</small></th><th scope="col" class="num">Eval. trials<small>per policy</small></th></tr></thead>
-                    <tbody>
-                      <tr><th scope="row">Iter1<small>BC parent</small></th><td>20 demonstrations + 12 shared DAgger trajectories</td><td class="num">12</td></tr>
-                      <tr><th scope="row">Iter2<small>Best Iter1 parent</small></th><td>Original 20 demonstrations + 12 new successful rollouts<small>Excludes Iter1 DAgger trajectories.</small></td><td class="num">12</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-                <details class="disclosure disclosure--card" id="weighting-parameters">
-                  <summary>Weighting parameters</summary>
-                  <div class="disclosure-body">
-                    <p>Thresholds are set from average nominal increments in progress curves constructed from human annotations in reward-model evaluation data, then applied to model-predicted increments on unseen policy-learning trajectories. Separate thresholds reflect more diverse initial conditions and motion strategies in human demonstrations than in policy rollouts.</p>
-                    <p>For normalized whole-task progress \(\widehat{P}_t \in [0,1]\), use \(\Delta\widehat{P}_t = \widehat{P}_{t+1} - \widehat{P}_t\).</p>
-                    <p>Thresholds: <strong>[upper, lower]</strong>, in normalized progress units per action step. The subtask count is \(K=9\) for airplane assembly and \(K=10\) for red car assembly.</p>
-                    <div class="table-card">
-                      <table class="table data-table" aria-label="Progress-weighted behavior cloning weighting parameters">
-                        <thead><tr><th scope="col">Setting</th><th scope="col">Value</th></tr></thead>
-                        <tbody>
-                          <tr><th scope="row">Progress-difference interval</th><td><strong>Adjacent frames at 30 fps (1/30 s).</strong> We assign one imitation weight per action time step.</td></tr>
-                          <tr><th scope="row">Human-action thresholds</th><td>\([0.35,\,-0.13] \times 0.01/K\)</td></tr>
-                          <tr><th scope="row">Policy-action thresholds</th><td>\([0.5,\,-0.2] \times 0.01/K\)</td></tr>
-                          <tr><th scope="row">Imitation weights</th><td><strong>High: 1.0 · Intermediate: 0.5 · Low: 0.</strong> Low actions contribute no imitation loss.</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </details>
-              </div>
-            </section>
-              </div>
-              </section>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="section" id="tasks" aria-labelledby="tasks-title">
         <div class="container container--wide">
           <header class="section-header">
-            <p class="kicker">06 · Pretraining task examples</p>
+            <p class="kicker">05 · Pretraining task examples</p>
             <h2 id="tasks-title">200 pretraining tasks; 50 held-out evaluation tasks.</h2>
             <p class="lede">Examples from the mostly short manipulation tasks used for pretraining, with subtask descriptions and action-quality annotations. The long assembly tasks and the two offline-RL tasks are excluded from pretraining.</p>
           </header>
@@ -875,7 +621,7 @@
       <section class="section" id="bibtex" aria-labelledby="bibtex-title">
         <div class="container">
           <header class="section-header">
-            <p class="kicker">07 · BibTeX</p>
+            <p class="kicker">06 · BibTeX</p>
             <h2 id="bibtex-title">Citation.</h2>
           </header>
           <div class="bibtex-block bibtex">
