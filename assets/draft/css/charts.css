@@ -1,5 +1,5 @@
-/* PRISM draft · result charts (assets/draft/js/charts.js) and the page pieces around them.
-   PRISM = the page accent (green; violet in the anonymous brand); the best other model a darker grey; the rest grey.
+/* Grana draft · result charts (assets/draft/js/charts.js) and the page pieces around them.
+   Grana = the page accent (green; violet in the anonymous brand); the best other model a darker grey; the rest grey.
    Plain-language labels at 16 px, the value on every bar, every axis from 0. */
 .pc {
   --pc-ink: var(--text, #1b1e23); --pc-muted: var(--muted, #5c636e); --pc-track: rgba(0, 0, 0, 0.03);

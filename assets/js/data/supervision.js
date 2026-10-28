@@ -1,5 +1,5 @@
-window.PRISM_DATA = window.PRISM_DATA || {};
-window.PRISM_DATA.supervision = {
+window.GRANA_DATA = window.GRANA_DATA || {};
+window.GRANA_DATA.supervision = {
   fps: 30,
   frames: 1117,
   completedSubtasks: 6,

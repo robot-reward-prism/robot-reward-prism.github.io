@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const DATA = window.PRISM_DATA || {};
+  const DATA = window.GRANA_DATA || {};
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 

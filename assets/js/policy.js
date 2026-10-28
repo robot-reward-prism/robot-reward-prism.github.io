@@ -159,5 +159,5 @@
     if (task && task !== current) load(task, { updateHash: false });
   });
   if (reduced) all((v) => { v.autoplay = false; });
-  window.PRISM = window.PRISM || {}; window.PRISM.policy = { load, play, pause, seekTo, TASKS, VIEWS };
+  window.GRANA = window.GRANA || {}; window.GRANA.policy = { load, play, pause, seekTo, TASKS, VIEWS };
 })();

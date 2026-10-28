@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PRISM draft: MPC examples player (03 · Planning with MPC, #mpc-player)
+   Grana draft: MPC examples player (03 · Planning with MPC, #mpc-player)
    Same parts and classes as the policy player (assets/css/players.css):
    story tabs, a panel with the video and its transport, a context column.
    The 16:9 clips carry burned-in captions and tags, so the video takes the
@@ -338,7 +338,7 @@ html.mpc-dialog-open { overflow: hidden; }
   .mpc-half-media video, .mpc-half-media, .mpc-half figcaption, .mpc-gcard::before { transition: none; }
 }
 
-/* ---------- Three beats: the policy alone fails -> PRISM judges the imagined futures -> the fix (with PRISM) ---------- */
+/* ---------- Three beats: the policy alone fails -> Grana judges the imagined futures -> the fix (with Grana) ---------- */
 /* (replaces the two-beat rules above: data-phase is now alone | judge | fix) */
 .mpc-gcard.is-relay[data-phase="judge"] .mpc-half[data-tone="bad"] video,
 .mpc-gcard.is-relay[data-phase="fix"] .mpc-half[data-tone="bad"] video { filter: none; }
@@ -386,7 +386,7 @@ html.mpc-dialog-open { overflow: hidden; }
 .mpc-judge-foot[data-tone="bad"] { color: #ff8a96; }
 .mpc-judge.is-judging .mpc-judge-foot { opacity: 1; transition-delay: 1.8s; }
 @media (prefers-reduced-motion: reduce) { .mpc-judge { display: none; } }
-/* the policy-alone tag and speed pill step aside while PRISM's panel covers that half */
+/* the policy-alone tag and speed pill step aside while Grana's panel covers that half */
 .mpc-half-tag, .mpc-half-speed { transition: opacity 0.25s ease; }
 .mpc-gcard.is-relay:not([data-phase="alone"]) .mpc-half[data-tone="bad"] .mpc-half-tag,
 .mpc-gcard.is-relay:not([data-phase="alone"]) .mpc-half[data-tone="bad"] .mpc-half-speed { opacity: 0; }

@@ -1,16 +1,16 @@
-/* PRISM draft · Fig. 2 "From local to global task progress", animated.
+/* Grana draft · Fig. 2 "From local to global task progress", animated.
  *   markup: draft.html #fig2 · styles: assets/draft/css/fig2.css · data: assets/draft/js/fig2-data.js
  *   media: assets/draft/video/fig2-airplane-views.mp4, -start.jpg, -poster.jpg
  *
  * Every module is in the markup and on screen from the first frame. This script only moves what is inside them:
  *   - the camera tiles play the episode: one 2 x 2 loop. The Top tile is the <video> itself (cropped by CSS), the
  *     other three are canvases copied from it, so the video is always on screen (iOS keeps visible muted video playing);
- *   - the selector's halo and the description chip move to the subtask PRISM selects;
+ *   - the selector's halo and the description chip move to the subtask Grana selects;
  *   - light flows along the wires; at each new subtask a pulse runs selector -> description -> VLM and k;
  *   - the local curve draws over the subtask's window and restarts at every new subtask; the composition bar fills;
  *   - the global curve climbs; completed subtasks keep their band of credit;
  *   - live readouts: (k + p) / K, the subtask counter and the episode clock.
- * Numbers: PRISM's per-second scores (fig2-data.js). Readouts and curve heads hold the latest score; nothing is
+ * Numbers: Grana's per-second scores (fig2-data.js). Readouts and curve heads hold the latest score; nothing is
  * interpolated between scores.
  * Clock: the video (a 6x time-lapse) while it plays, else the script's own. Jumps need a seekable video; on a server
  * without HTTP range requests (python3 -m http.server) the loop is fetched once as a blob after a seek fails, as
@@ -23,7 +23,7 @@
   "use strict";
   const fig = document.querySelector("[data-f2d]");
   if (!fig) return;
-  const DATA = window.PRISM_FIG2_DATA;
+  const DATA = window.GRANA_FIG2_DATA;
   const ok = DATA && Array.isArray(DATA.t) && Array.isArray(DATA.g) && DATA.t.length > 1 && DATA.t.length === DATA.g.length;
   if (!ok || !window.CanvasRenderingContext2D) {
     document.documentElement.classList.remove("f2d-js");          // the static figure shows instead
@@ -477,7 +477,7 @@
     c.clearRect(0, 0, w, h);
     return [w, h];
   }
-  function localPts(k, upto) {                                     // PRISM's scores for subtask k, up to index upto
+  function localPts(k, upto) {                                     // Grana's scores for subtask k, up to index upto
     const w = WIN[k], out = [];
     if (w.i0 < 0) return out;
     for (let j = w.i0; j <= Math.min(w.i1, upto); j++) if (KS[j] === k) out.push([(TT[j] - w.t0) / (w.t1 - w.t0), PS[j]]);

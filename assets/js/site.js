@@ -1,4 +1,4 @@
-/* PRISM page: shared behaviour (no dependencies, ES5-compatible).
+/* Grana page: shared behaviour (no dependencies, ES5-compatible).
  *
  *  - Accent switch: ?brand=anon | green  ->  <html data-brand="...">; the
  *    favicon follows, and the footer swatches show only with ?brand=.

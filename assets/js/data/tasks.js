@@ -1,5 +1,5 @@
-window.PRISM_DATA = window.PRISM_DATA || {};
-window.PRISM_DATA.tasks = {
+window.GRANA_DATA = window.GRANA_DATA || {};
+window.GRANA_DATA.tasks = {
   "items": [
     {
       "rank": 0,

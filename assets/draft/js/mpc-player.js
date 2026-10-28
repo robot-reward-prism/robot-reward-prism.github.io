@@ -1,8 +1,8 @@
-/* PRISM draft: MPC examples player (section 03, #mpc-player).
+/* Grana draft: MPC examples player (section 03, #mpc-player).
  *
  * Built like the policy player (assets/js/policy.js) and with its classes: story tabs (name, meta,
  * duration), a panel with the video and its transport, and a context column. One 16:9 clip per story
- * (window.PRISM_DRAFT.mpc, assets/draft/js/mpc-data.js). Under the video, a strip made of the film's
+ * (window.GRANA_DRAFT.mpc, assets/draft/js/mpc-data.js). Under the video, a strip made of the film's
  * own caption timeline (one segment per caption, coloured by kind) works as the seek bar: click a
  * segment to jump to that caption, drag to scrub, or use the arrow keys; the current caption is
  * repeated in large type under it.
@@ -16,7 +16,7 @@
 (() => {
   "use strict";
   const host = document.getElementById("mpc-player");
-  const DATA = window.PRISM_DRAFT && window.PRISM_DRAFT.mpc;
+  const DATA = window.GRANA_DRAFT && window.GRANA_DRAFT.mpc;
   if (!host || !DATA || !Array.isArray(DATA.stories) || !DATA.stories.length) return;
   const script = document.currentScript;
   const BASE = new URL("../../../", (script && script.src) || document.baseURI).href;
@@ -107,8 +107,8 @@
   const note = el("p", { class: "policy-caption mpc-note" });
   const legendRows = [
     ["bad", "✕ policy alone", "The same start, without MPC."],
-    ["good", "✓ PRISM's pick", "The candidate rollout selected using PRISM and executed on the robot."],
-    ["bad", "✕ PRISM", "All four candidate rollouts were rejected based on PRISM scores."],
+    ["good", "✓ Grana's pick", "The candidate rollout selected using Grana and executed on the robot."],
+    ["bad", "✕ Grana", "All four candidate rollouts were rejected based on Grana scores."],
     ["plain", "×N · fast-forward · MPC idle", "Sped up, or no planning in that stretch."],
   ];
   const legend = el("details", { class: "disclosure mpc-legend" },
@@ -146,8 +146,8 @@
         el("figcaption", { text: s.card[side].text }));
       return { v, node };
     };
-    const a = half("alone", "bad", "✕ policy alone"), m = half("mpc", "good", "✓ with PRISM");
-    /* beat 2: PRISM judges the round's 4 imagined futures (real WAM futures, a 2x2 clip) and stamps each one */
+    const a = half("alone", "bad", "✕ policy alone"), m = half("mpc", "good", "✓ with Grana");
+    /* beat 2: Grana judges the round's 4 imagined futures (real WAM futures, a 2x2 clip) and stamps each one */
     let jv = null;
     const J = s.card.judge;
     if (J) {
@@ -157,7 +157,7 @@
       const cells = J.cells.map(([tone, txt], k) => el("span", { class: "mpc-judge-cell", "data-tone": tone, style: `--k:${k}` },
         el("span", { class: "mpc-judge-stamp" }, el("b", { text: tone === "good" ? "✓" : "✕" }), el("span", { text: txt }))));
       a.node.querySelector(".mpc-half-media").append(el("div", { class: "mpc-judge", "aria-hidden": "true" },
-        el("span", { class: "mpc-judge-head" }, el("span", { class: "mpc-judge-gem", text: "◆" }), el("span", {}, "PRISM scores 4 ", el("span", { class: "mpc-judge-im", text: "predicted " }), "rollouts")),
+        el("span", { class: "mpc-judge-head" }, el("span", { class: "mpc-judge-gem", text: "◆" }), el("span", {}, "Grana scores 4 ", el("span", { class: "mpc-judge-im", text: "predicted " }), "rollouts")),
         el("div", { class: "mpc-judge-stage" }, jv, el("div", { class: "mpc-judge-grid" }, ...cells), el("span", { class: "mpc-judge-scan" })),
         el("span", { class: "mpc-judge-foot", "data-tone": J.cells.some((c) => c[0] === "good") ? "good" : "bad", text: J.foot })));
     }
@@ -177,7 +177,7 @@
     });
     gallery.append(item);
     const p = { item, videos: [a.v, m.v], judge: jv, inView: false, phase: 0, timer: 0 };
-    /* the relay: the policy alone fails -> PRISM judges the imagined futures -> the fix runs -> again */
+    /* the relay: the policy alone fails -> Grana judges the imagined futures -> the fix runs -> again */
     a.v.addEventListener("ended", () => { if (p.phase === 0) relayTo(p, p.judge ? 1 : 2, 300); });
     m.v.addEventListener("ended", () => { if (p.phase === 2) relayTo(p, 0, 900); });
     previews.push(p);
@@ -745,7 +745,7 @@
   select(initial, { updateHash: false });
   if (linkedStory) openStory(linkedStory, null, { updateHash: false });
 
-  window.PRISM_DRAFT.mpcPlayer = {
+  window.GRANA_DRAFT.mpcPlayer = {
     open: (id) => openStory(STORIES.find((s) => s.id === id || s.alias === id)),
     close: closeDialog,
     previews: () => previews.map((p) => ({ id: p.item.dataset.story, phase: p.item.dataset.phase, inView: p.inView, playing: p.videos.map((v) => !v.paused), judging: !!(p.judge && !p.judge.paused) })),

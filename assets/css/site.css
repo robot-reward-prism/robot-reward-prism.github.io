@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PRISM page: editorial base layer
+   Grana page: editorial base layer
    Cream body · serif headings · mono UI · dark full-bleed media bands.
    Fonts: self-hosted in assets/fonts (latin + latin-ext subsets of Inter,
    Newsreader and IBM Plex Mono; SIL OFL 1.1, see assets/fonts/OFL.txt), so
@@ -362,7 +362,7 @@ sub, sup { line-height: 0; }
 .navbar.scrolled a, .navbar.scrolled button,
 .navbar:focus-within a, .navbar:focus-within button { pointer-events: auto; }
 
-/* Small prism mark at the top of the rail (links to the overview) */
+/* Small grana mark at the top of the rail (links to the overview) */
 .nav-brand {
   display: inline-flex; align-items: center; gap: 0.55rem;
   margin: 0 0 1.4rem 0.1rem;

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const host = document.getElementById("prediction-player");
-  const items = window.PRISM_DATA && window.PRISM_DATA.predictions && window.PRISM_DATA.predictions.items;
+  const items = window.GRANA_DATA && window.GRANA_DATA.predictions && window.GRANA_DATA.predictions.items;
   if (!host || !items || !items.length) return;
   const base = new URL("../../", document.currentScript.src);
   const el = (tag, attributes = {}, ...children) => {

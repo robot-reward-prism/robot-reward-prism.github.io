@@ -1,6 +1,6 @@
-/* PRISM draft · section 02 "Post-training with PRISM" (draft.html #policy).
+/* Grana draft · section 02 "Post-training with Grana" (draft.html #policy).
  *   - The film: assets/draft/video/posttrain_{1080,720}.mp4, the cover film's post-training segment (33 s): how
- *     PRISM's progress becomes the training signal, then the results. Muted; it plays while in view.
+ *     Grana's progress becomes the training signal, then the results. Muted; it plays while in view.
  *   - One card per task. Each shows the post-trained policy's real rollout (front view, sped up; one selected
  *     successful evaluation episode) and its success rate against the alternative, from the paper (Sec. 4.5,
  *     Figs. 5-6; the alternative is the strongest other reward source, named as in Fig. 5). The bars fill when the cards come into view.
@@ -16,13 +16,13 @@
   const reduceMQ = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
   const TASKS = [
     { id: "star", title: "Star insertion", method: "Offline RL", speed: "×2", tag: "✓ success", dur: "0:15",
-      bars: [["PRISM", 65.0, "13/20"], ["RoboMeter (finetuned)", 50.0, "10/20"]], note: "20 trials · zero-shot", dec: 1 },
+      bars: [["Grana", 65.0, "13/20"], ["RoboMeter (finetuned)", 50.0, "10/20"]], note: "20 trials · zero-shot", dec: 1 },
     { id: "tube", title: "Tube transfer", method: "Offline RL", speed: "×5", tag: "✓ success", dur: "0:33",
-      bars: [["PRISM", 66.7, "8/12"], ["RoboMeter (finetuned)", 41.7, "5/12"]], note: "12 trials · zero-shot · SARM2 also 41.7 %", dec: 1 },
+      bars: [["Grana", 66.7, "8/12"], ["RoboMeter (finetuned)", 41.7, "5/12"]], note: "12 trials · zero-shot · SARM2 also 41.7 %", dec: 1 },
     { id: "airplane", title: "Airplane model", method: "Weighted cloning", speed: "×20", tag: "✓ assembled", dur: "2:47",
-      bars: [["PRISM-weighted", 75.0, "9/12"], ["Unweighted", 50.0, "6/12"]], note: "12 trials · Iter2", dec: 1 },
+      bars: [["Grana-weighted", 75.0, "9/12"], ["Unweighted", 50.0, "6/12"]], note: "12 trials · Iter2", dec: 1 },
     { id: "car", title: "Car model", method: "Weighted cloning", speed: "×30", tag: "✓ assembled", dur: "4:22",
-      bars: [["PRISM-weighted", 66.7, "8/12"], ["Unweighted", 41.7, "5/12"]], note: "12 trials · Iter2", dec: 1 },
+      bars: [["Grana-weighted", 66.7, "8/12"], ["Unweighted", 41.7, "5/12"]], note: "12 trials · Iter2", dec: 1 },
   ];
 
   function el(tag, attrs = {}, ...kids) {
@@ -46,7 +46,7 @@
   const small = window.matchMedia && window.matchMedia("(max-width: 900px), (max-height: 500px)").matches;
   const film = el("video", { class: "pt-film-video", muted: true, loop: true, playsinline: true, preload: "none",
     poster: abs("assets/draft/video/posttrain_poster.jpg"), "data-pt-src": abs(`assets/draft/video/posttrain_${small ? 720 : 1080}.mp4?v=p1`),
-    "aria-label": "Film: how PRISM's progress trains the policy, then the results (33 seconds, no sound)" });
+    "aria-label": "Film: how Grana's progress trains the policy, then the results (33 seconds, no sound)" });
   film.muted = true;
   film.id = "pt-film-video";
   const filmToggle = el("button", { class: "pt-playback pt-film-toggle", type: "button", "aria-controls": film.id });
@@ -78,7 +78,7 @@
     v.muted = true;
     playback.push({ video: v, state: cardsState, inView: false, pending: false });
     const fmt = (x) => `${x.toFixed(t.dec)} %`;
-    const rows = t.bars.map(([name, val, frac], r) => el("div", { class: `pt-row${r === 0 ? " is-prism" : ""}` },
+    const rows = t.bars.map(([name, val, frac], r) => el("div", { class: `pt-row${r === 0 ? " is-grana" : ""}` },
       el("span", { class: "pt-name", text: name }),
       el("span", { class: "pt-track" }, el("i", { style: `--v:${(val / 100).toFixed(3)}` })),
       el("span", { class: "pt-val" }, el("b", { text: fmt(val) }), el("small", { text: frac }))));
@@ -125,7 +125,7 @@
   dialog.addEventListener("click", (e) => { if (e.target === dialog) shut(); });
   dialog.addEventListener("close", () => {
     document.documentElement.classList.remove("mpc-dialog-open");
-    const policy = window.PRISM && window.PRISM.policy;
+    const policy = window.GRANA && window.GRANA.policy;
     if (policy) policy.pause();
     else if (player) player.querySelectorAll("video").forEach((v) => v.pause());
     if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
@@ -243,7 +243,7 @@
   });
   window.addEventListener("hashchange", openFromHash);
 
-  window.PRISM_DRAFT = window.PRISM_DRAFT || {};
-  window.PRISM_DRAFT.posttrain = { open: (id) => openTask(TASKS.find((t) => t.id === id) || TASKS[0]), close: shut, film, dialog };
+  window.GRANA_DRAFT = window.GRANA_DRAFT || {};
+  window.GRANA_DRAFT.posttrain = { open: (id) => openTask(TASKS.find((t) => t.id === id) || TASKS[0]), close: shut, film, dialog };
   openFromHash();
 })();

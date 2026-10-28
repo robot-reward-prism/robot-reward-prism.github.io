@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const root = document.getElementById("supervision-example");
-  const data = window.PRISM_DATA && window.PRISM_DATA.supervision;
+  const data = window.GRANA_DATA && window.GRANA_DATA.supervision;
   if (!root || !data) return;
   const find = (selector) => root.querySelector(selector);
   const video = find("#supervision-video");

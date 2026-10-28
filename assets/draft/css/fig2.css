@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PRISM draft · Fig. 2 "From local to global task progress", animated.
+   Grana draft · Fig. 2 "From local to global task progress", animated.
    Markup: draft.html #fig2 · script: assets/draft/js/fig2.js (+ fig2-data.js).
    Every module is on screen from the first frame; the script only moves what
    is inside them. Three layouts, picked by the card's own width:

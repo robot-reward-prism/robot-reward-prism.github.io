@@ -1,5 +1,5 @@
-window.PRISM_DATA = window.PRISM_DATA || {};
-window.PRISM_DATA.predictions = {
+window.GRANA_DATA = window.GRANA_DATA || {};
+window.GRANA_DATA.predictions = {
   items: [
     {
       id: "pupgo",

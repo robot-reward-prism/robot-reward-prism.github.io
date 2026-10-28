@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PRISM page: content components on the cream body
+   Grana page: content components on the cream body
    (overview, paper references, findings, tables, method details, gallery)
    ========================================================================== */
 
@@ -302,7 +302,7 @@ main { display: block; }
 .gpt6-note strong { font-weight: 600; }
 
 /* --------------------------------------------------------------------------
-   Scorecard tables (base in site.css) — PRISM specifics
+   Scorecard tables (base in site.css) — Grana specifics
    -------------------------------------------------------------------------- */
 .scorecard-card { margin: 0; }
 /* Tabular figures only in value cells: Inter's tnum also widens hyphens. */
