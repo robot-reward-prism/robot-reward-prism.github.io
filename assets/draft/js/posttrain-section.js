@@ -45,7 +45,7 @@
   /* ---------- the film ---------- */
   const small = window.matchMedia && window.matchMedia("(max-width: 900px), (max-height: 500px)").matches;
   const film = el("video", { class: "pt-film-video", muted: true, loop: true, playsinline: true, preload: "none",
-    poster: abs("assets/draft/video/posttrain_poster.jpg"), "data-pt-src": abs(`assets/draft/video/posttrain_${small ? 720 : 1080}.mp4?v=p1`),
+    poster: abs("assets/draft/video/posttrain_poster.jpg"), "data-pt-src": abs(`assets/draft/video/posttrain_${small ? 720 : 1080}.mp4?v=p2`),
     "aria-label": "Film: how Grana's progress trains the policy, then the results (33 seconds, no sound)" });
   film.muted = true;
   film.id = "pt-film-video";
