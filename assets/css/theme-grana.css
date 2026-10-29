@@ -1,0 +1,163 @@
+/* Grana theme (2026-10-28): one dark page in the film's colours, instead of a cream page broken by black bands.
+   Loaded last. The body carries .band-dark, so every component's existing dark variant applies page-wide; the
+   tokens below set that dark to the cover film's warm graphite (the film's own background is #080807) and the
+   accents to Grana's teal -> green -> gold (the clover and the film's subtask ramp). No violet. */
+
+:root {
+  --g-ink: #090807;            /* the film's background: hero letterbox, deepest surfaces */
+  --g-bg: #0f0e0d;             /* page */
+  --g-surface: #171614;        /* cards, figure plates, tables */
+  --g-surface-2: #1d1c19;      /* raised: hover, active tab */
+  --g-text: #ebe7df;
+  --g-text-2: #d8d3c9;
+  --g-muted: #aea99f;          /* 8.6:1 on the page */
+  --g-faint: #75716a;
+  --g-line: rgba(255, 246, 230, 0.09);
+  --g-line-strong: rgba(255, 246, 230, 0.17);
+  --g-teal: #30c5a5;
+  --g-green: #84d765;
+  --g-green-ink: #a5e780;
+  --g-gold: #fbc959;
+  --g-gold-ink: #fcda86;
+
+  --bg: var(--g-bg);
+  --bg-2: var(--g-ink);
+  --surface: var(--g-surface);
+  --panel: var(--g-surface);
+  --panel-2: var(--g-surface);
+  --frame: var(--g-ink);
+  --placeholder: var(--g-surface-2);
+  --text: var(--g-text);
+  --text-2: var(--g-text-2);
+  --muted: var(--g-muted);
+  --faint: var(--g-faint);
+  --line: var(--g-line);
+  --line-strong: var(--g-line-strong);
+
+  --ink-0: var(--g-bg);        /* the former black bands are now the page itself */
+  --hero-bg: var(--g-ink);
+  --ink-video: var(--g-ink);
+  --dark-text: var(--g-text);
+  --dark-muted: var(--g-muted);
+  --dark-line: var(--g-line);
+  --dark-line-strong: var(--g-line-strong);
+  --dark-panel: var(--g-surface);
+  --dark-panel-2: var(--g-surface-2);
+
+  --btn-bg: var(--g-surface-2);
+  --btn-bg-hover: #282622;
+  --btn-border: rgba(255, 246, 230, 0.2);
+  --btn-border-hover: rgba(255, 246, 230, 0.36);
+
+  --q-good: #4fcf9f;   --q-good-bg: rgba(79, 207, 159, 0.14);   --q-good-text: #8fe5c2;
+  --q-warn: #f0b545;   --q-warn-bg: rgba(240, 181, 69, 0.14);
+  --q-bad: #f0716a;    --q-bad-bg: rgba(240, 113, 106, 0.14);
+
+  --shadow-float: 0 20px 50px rgba(0, 0, 0, 0.45);
+  --shadow-frame: 0 10px 28px rgba(0, 0, 0, 0.4);
+  --shadow-figure: 0 10px 30px rgba(0, 0, 0, 0.4);
+  color-scheme: dark;
+}
+:root, [data-brand="green"] {
+  --accent: var(--g-green);
+  --accent-ink: var(--g-green-ink);
+  --accent-text: var(--g-green-ink);
+  --accent-on: #0c1806;
+  --accent-soft: rgba(132, 215, 101, 0.13);
+  --accent-58: rgba(132, 215, 101, 0.58);
+  --accent-focus: rgba(132, 215, 101, 0.7);
+  --accent-ring: rgba(132, 215, 101, 0.16);
+  --accent-hover-border: rgba(132, 215, 101, 0.55);
+  --selection-bg: rgba(251, 201, 89, 0.32);
+  --selection-fg: #fff8e8;
+  --accent-dark: var(--g-green);
+  --accent-dark-ink: var(--g-green-ink);
+  --glass-kind: var(--g-green-ink);
+  --qd-good: var(--g-green);
+  --sc-text: var(--g-text);
+  --sc-muted: var(--g-muted);
+  --sc-band: rgba(255, 246, 230, 0.025);
+  --sc-rule: var(--g-line);
+  --sc-ours-ink: var(--g-green-ink);
+  --sc-ours-head: rgba(132, 215, 101, 0.09);
+  --sc-ours-rule: rgba(132, 215, 101, 0.45);
+  --sc-ours-best: rgba(132, 215, 101, 0.2);
+  --sc-best: rgba(255, 246, 230, 0.07);
+  --sc-hover: rgba(255, 246, 230, 0.05);
+  --sc-hover-ours: rgba(132, 215, 101, 0.13);
+  --sc-hover-best: rgba(255, 246, 230, 0.1);
+  --sc-hover-ours-best: rgba(132, 215, 101, 0.26);
+  --sc-hover-ours-head: rgba(132, 215, 101, 0.14);
+  --sc-cell-ring: rgba(255, 246, 230, 0.4);
+}
+
+html, body { background: var(--g-bg); color: var(--g-text); }
+body.band-dark { padding: 0; }                   /* .band-dark is for its colours only here, not its band padding */
+main .band-dark { background: transparent; }     /* post-training / MPC: part of the page, no black slab */
+.section--band { padding-bottom: var(--section-pad); }
+
+/* section kickers ("03 · Post-training with Grana") in Grana gold; headings warm white */
+.kicker { color: var(--g-gold); }
+h1, h2, h3, h4 { color: var(--g-text); }
+
+/* light-only surfaces */
+.input { background: rgba(255, 246, 230, 0.04); }
+.ref > summary:hover { background: rgba(255, 246, 230, 0.06); }
+.prediction-tab:hover { background: rgba(255, 246, 230, 0.05); }
+
+/* the prediction curves are matplotlib renders on white: shown as a dark plot (inverted, hues kept), the same as the
+   rest of the page; the "future" veil is inverted with them */
+.prediction-curve-card { background: #121110; }
+.prediction-curve-wrap { filter: invert(0.93) hue-rotate(180deg); }
+
+/* footer: the same page, a hairline above */
+body > .footer { background: var(--g-bg); border-top: 1px solid var(--g-line); }
+
+/* hero letterbox edges and the focus-revealed rail: the film's ink, not the old violet-black */
+.hero:not(.hero--full)::before { background: linear-gradient(90deg, var(--hero-bg), rgba(9, 8, 7, 0)); }
+.hero:not(.hero--full)::after { background: linear-gradient(270deg, var(--hero-bg), rgba(9, 8, 7, 0)); }
+.navbar.focus-reveal { background: rgba(9, 8, 7, 0.86); }
+
+/* Fig. 2: Grana's subtask ramp (teal -> gold, as in the film and the clover) instead of the prism spectrum; warm inks */
+.f2d {
+  --f2d-bg: #141311;
+  --f2d-ink: #f3efe7; --f2d-ink-2: #d2ccc1; --f2d-ink-3: #aaa499;
+  --f2d-s1: #1ebb9b; --f2d-s2: #47c18f; --f2d-s3: #66c582; --f2d-s4: #82c875; --f2d-s5: #9dca69;
+  --f2d-s6: #b7cb5e; --f2d-s7: #cfcb57; --f2d-s8: #e6ca55; --f2d-s9: #fbc959;
+  --f2d-wire: rgba(255, 246, 230, 0.2); --f2d-arrow: rgba(255, 246, 230, 0.6);
+  --f2d-p-plain: #f3efe7; --f2d-p-cam: #e6eef0; --f2d-p-feat: #f1ece2; --f2d-curve: #f3efe7;
+  --f2d-tag: rgba(9, 8, 7, 0.8); --f2d-bead: #171614;
+}
+.f2d-card {
+  background:
+    radial-gradient(65% 55% at 6% 0%, rgba(30, 187, 155, 0.10), transparent 72%),
+    radial-gradient(55% 60% at 100% 100%, rgba(251, 201, 89, 0.08), transparent 72%),
+    var(--f2d-bg);
+  box-shadow: inset 0 0 0 1px var(--g-line), 0 28px 70px -30px rgba(0, 0, 0, 0.7);
+}
+.f2d-desc { background: rgba(20, 19, 17, 0.94); box-shadow: 0 0 0 4px rgba(9, 8, 7, 0.55), 0 0 26px -8px var(--c); }
+.f2d-feats i { background: rgba(255, 246, 230, 0.14); }
+
+/* MPC strip: Grana's judging in Grana gold (the film's GRANA box), not violet */
+#mpc-player { --mpc-plan: #fbc959; --mpc-plan-soft: rgba(251, 201, 89, 0.5); }
+.mpc-gcard.is-relay[data-phase="judge"] .mpc-half[data-tone="bad"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(251, 201, 89, 0.95), 0 0 30px rgba(251, 201, 89, 0.35); }
+.mpc-gcard.is-relay[data-phase="fix"] .mpc-half[data-tone="bad"] .mpc-half-media { box-shadow: inset 0 0 0 2px rgba(251, 201, 89, 0.55); }
+.mpc-judge-gem { color: #fbc959; text-shadow: 0 0 10px rgba(251, 201, 89, 0.7); }
+.mpc-judge-scan { background: linear-gradient(180deg, transparent, rgba(251, 201, 89, 0.3) 60%, rgba(255, 236, 190, 0.8) 64%, transparent 68%); }
+.pt-row.is-grana .pt-val b { color: var(--g-text); }
+
+/* selected tabs / chips were "ink fill + white text" (a dark pill on cream): on the dark page, a raised tile with an accent edge */
+.prediction-tab[aria-selected="true"], .chip.active, .chip[aria-pressed="true"], .brand-switch button[aria-pressed="true"] {
+  background: var(--g-surface-2); border-color: var(--g-green); color: var(--g-text);
+  box-shadow: inset 0 0 0 1px var(--g-green);
+}
+.prediction-tab[aria-selected="true"] .prediction-subtask-count { color: var(--g-muted); }
+.prediction-tab:hover { border-color: var(--g-line-strong); }
+
+/* the clover beside the top bar's wordmark; warm subtitle */
+.project-wordmark .pw-mark { width: 22px; height: 22px; margin-right: -0.5rem; }
+.project-wordmark span { color: var(--g-muted); }
+.project-wordmark:hover { color: var(--g-gold-ink); }
+
+/* the page leaves the film without a seam: it starts in the film's ink and eases into the page colour */
+main > .section-overview { background: linear-gradient(180deg, var(--g-ink) 0, var(--g-bg) 220px); }

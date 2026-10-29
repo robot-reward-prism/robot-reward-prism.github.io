@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Grana: Compositional Reward Modeling for Long-Horizon Robot Manipulation. Videos, reward-prediction experiments, and policy-learning results." />
-    <meta name="theme-color" content="#0b0a16" />
+    <meta name="theme-color" content="#0f0e0d" />
     <meta property="og:title" content="Grana: Compositional Reward Modeling for Long-Horizon Robot Manipulation" />
     <meta property="og:description" content="Grana: Compositional Reward Modeling for Long-Horizon Robot Manipulation. Videos, reward-prediction experiments, and policy-learning results." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://robot-reward-prism.github.io/" />
     <link rel="canonical" href="https://robot-reward-prism.github.io/" />
     <title>Grana: Compositional Reward Modeling for Long-Horizon Robot Manipulation</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M15 4 26 28H4Z' fill='%23f2ece6' stroke='%231b1e23' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M1 16h8.6l10.4 3' fill='none' stroke='%231b1e23' stroke-width='1.8'/%3E%3Cpath d='M20 19l11-5' stroke='%23177c87' stroke-width='2.2'/%3E%3Cpath d='M20 19h11' stroke='%2376b900' stroke-width='2.2'/%3E%3Cpath d='M20 19l11 5' stroke='%23c98500' stroke-width='2.2'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/png" href="assets/img/grana-mark-64.png" />
     <script>
       /* DRAFT: the animated Fig. 2 (assets/draft/js/fig2.js) takes the figure slot from first paint. If that
          script never marks the figure live (missing data, blocked script), the static figure comes back. */
@@ -58,6 +58,7 @@
     <link rel="stylesheet" href="assets/draft/css/mpc.css?v=4338ddcea742" />
     <link rel="stylesheet" href="assets/draft/css/posttrain.css?v=e179ab3040f9" />
     <link rel="stylesheet" href="assets/draft/css/charts.css?v=d181eb68c244" />
+    <link rel="stylesheet" href="assets/css/theme-grana.css?v=e7a41e19bfc9" /><!-- Grana theme: one dark page in the film's colours (loaded last) -->
     <script defer src="assets/draft/js/fig2-data.js?v=615ecfc1a7f5"></script>
     <script defer src="assets/draft/js/fig2.js?v=e8bb2f25d9ba"></script>
     <script defer src="assets/draft/js/mpc-data.js?v=69839f591d32"></script>
@@ -66,16 +67,13 @@
     <script defer src="assets/draft/js/charts.js?v=d4f63591e856"></script>
     <script defer src="assets/draft/js/topic-accordion.js?v=c80d65a3162f"></script>
   </head>
-  <body>
+  <body class="band-dark">
     <a class="skip-link" href="#overview">Skip to content</a>
     <div class="scroll-progress" aria-hidden="true"></div>
 
     <svg style="display:none" aria-hidden="true">
       <symbol id="mark" viewBox="0 0 32 32">
-        <path d="M16 3.5 27.5 30H4.5Z" />
-        <path class="beam" d="M1 16.5H10.4" />
-        <path class="beam beam--in" d="M10.4 16.5 22.4 18.2" />
-        <path class="beam" d="M22.4 18.2l8.6 2.8M22.4 18.2l7.9 4.4M22.4 18.2l6.9 5.8" />
+        <image href="assets/img/grana-mark-128.png" x="0" y="0" width="32" height="32" />
       </symbol>
       <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="8" y1="13" x2="16" y2="13" /><line x1="8" y1="17" x2="13" y2="17" /></symbol>
       <symbol id="i-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polygon points="10 8 16 12 10 16 10 8" /></symbol>
@@ -103,7 +101,7 @@
 
     <nav class="project-resources" aria-label="Project resources">
       <div class="project-resources-inner">
-        <a class="project-wordmark" href="#overview">Grana<span>Reward modeling for long-horizon robot manipulation</span></a>
+        <a class="project-wordmark" href="#overview"><img class="pw-mark" src="assets/img/grana-mark-64.png" alt="" width="22" height="22" />Grana<span>Reward modeling for long-horizon robot manipulation</span></a>
         <div class="project-resource-actions">
           <a class="btn btn--sm" href="assets/paper/reward_PRISM_arxiv_v1.pdf?v=db135e2d2031" aria-label="Paper and appendix (PDF)">
             <svg class="btn-ico" aria-hidden="true"><use href="#i-doc" /></svg>Paper
